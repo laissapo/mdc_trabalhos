@@ -1,0 +1,180 @@
+---
+title: INF0613 -- Aprendizado de Máquina Não Supervisionado
+output: pdf_document
+subtitle: Trabalho 3 - Técnicas de Agrupamento
+author: 
+  - Nome completo Integrante 1
+  - Nome completo Integrante 2
+  - Nome completo Integrante 3
+---
+
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE, error = FALSE, message = FALSE, warning = FALSE, tidy = FALSE)
+options(digits = 3)
+```
+
+
+O objetivo deste trabalho é exercitar o uso de algoritmos de agrupamento. Neste trabalho, vamos analisar diferentes atributos de carros com o objetivo de verificar se seus atributos são suficientes para indicar um valor de risco de seguro. O conjunto de dados já apresenta o risco calculado no campo `symboling` indicado na Tabela 1. Quanto mais próximo de 3, maior o risco. O conjunto de dados que deve ser usado está disponível na página do Moodle com o nome `imports-85.data`.
+
+# Atividade 0 -- Configurando o ambiente
+Antes de começar a implementação do seu trabalho configure o _workspace_ e importe todos os pacotes e execute o preprocessamento da base:
+
+```{r atv0-code}
+# Adicione os pacotes usados neste trabalho:
+
+
+# Configure ambiente de trabalho na mesma pasta 
+# onde colocou a base de dados:
+# setwd("")
+
+
+```
+
+
+
+# Atividade 1 -- Análise e Preparação dos Dados
+
+O conjunto de dados é composto por 205 amostras com 26 atributos cada descritos na Tabela 1. Os atributos são dos tipos `factor`, `integer` ou  `numeric`. O objetivo desta etapa é a análise e preparação desses dados de forma a ser possível agrupá-los nas próximas atividades. 
+
+**Implementações:** Nos itens a seguir você implementará a leitura da base e aplicará tratamentos básicos.
+
+a) *Tratamento de dados Incompletos:* Amostras incompletas deverão ser tratadas, e você deve escolher a forma que achar mais adequada. Considere como uma amostra incompleta uma linha na qual faltam dados em alguma das colunas selecionadas anteriormente. Note que, dados faltantes nas amostras podem causar uma conversão do tipo do atributo de todas as amostras e isso pode impactar no item b). 
+
+```{r atv1a-code}
+# Leitura da base
+
+# Tratamento de dados faltantes
+
+```
+
+b) *Seleção de Atributos:* Atributos não-numéricos não podem ser usados com as técnicas  agrupamento vistas em aula. Portanto, você deve selecionar um conjunto de atributos numéricos que serão usados para o agrupamento. Além disso você deve analisar se os atributos não-numéricos são descritivos para a realização dos agrupamentos. Caso um dos atributos não numéricos seja necessário, use a técnica do  *one hot encoding* para transformá-lo em numérico. **Não** aplique essa técnica nos atributos `symboling` e `make` para os agrupamentos subsequentes, eles não devem fazer parte do agrupamento. 
+
+```{r atv1b-code}
+# Seleção de atributos
+
+
+```
+
+## Análises
+
+Após as implementações escreva uma análise da base de dados. Em especial, descreva o conjunto de dados inicial, relate como foi realizado o tratamento, liste quais os atributos escolhidos para manter na base e descreva a base de dados após os tratamentos listados. Explique todos os passos executados, mas sem copiar códigos na análise. Além disso justifique suas escolhas de tratamento nos dados faltantes e seleção de atributos.
+
+
+**Resposta:** <!-- Escreva sua resposta abaixo -->
+
+
+<!-- Fim da resposta -->
+
+
+# Atividade 2 -- Agrupamento com o $K$*-means*
+
+Nesta atividade, você deverá agrupar os dados com o algoritmo $K$*-means* e utilizará duas métricas básicas para a escolha do melhor $K$: a soma de distâncias intra-cluster e o coeficiente de silhueta. 
+
+**Implementações:** Nos itens a seguir você implementará a geração de gráficos para a análise das distâncias intra-cluster e do coeficiente de silhueta. Em seguida, você implementará o agrupamento dos dados processados na atividade anterior com o algoritmo $K$*-means* utilizando o valor de $K$ escolhido.  
+
+a) *Gráfico \textsl{Elbow Curve}:* Construa um gráfico com a soma das distâncias intra-cluster para $K$ variando de $2$ a $30$.
+
+```{r atv2a-code}
+# Construindo um gráfico com as distâncias intra-cluster
+
+
+```
+
+b) *Gráfico da Silhueta:* Construa um gráfico com o valor da silhueta para $K$ variando de $2$ a $30$.
+
+```{r atv2b-code}
+# Construindo um gráfico com os valores da silhueta
+
+
+```
+
+c) *Escolha do $K$:* Avalie os gráficos gerados nos itens anteriores e escolha o melhor valor  de $K$ com base nas informações desses gráficos e na sua análise. Se desejar, use também a função `NbClust` para ajudar nas análises. Com o valor de $K$ definido, utilize o rótulo obtido para cada amostra, indicando o grupo ao qual ela pertence, para gerar um gráfico de dispersão (atribuindo cores diferentes para cada grupo).
+
+```{r atv2c-code}
+# Aplicando o k-means com o k escolhido 
+
+# Construindo um gráfico de dispersão
+
+```
+
+## Análises
+
+Descreva cada um dos gráficos gerados nos itens acima e analise-os. Inclua na sua análise as informações mais importantes que podemos retirar desses gráficos. Discuta sobre a escolha do valor $K$ e sobre a apresentação dos dados no gráfico de dispersão. 
+
+
+**Resposta:** <!-- Escreva sua resposta abaixo -->
+
+
+<!-- Fim da resposta -->
+
+# Atividade 3 -- Agrupamento com o *DBscan*
+
+Nesta atividade, você deverá agrupar os dados com o algoritmo *DBscan*. Para isso será necessário experimentar com diferentes valores de *eps* e *minPts*. 
+
+a) *Ajuste de Parâmetros:* Experimente com valores diferentes para os parâmetros *eps* e *minPts*. Verifique o impacto dos diferentes valores nos agrupamentos.
+
+```{r atv3a-code}
+# Experimento com valores de eps e minPts
+
+# Experimento com valores de eps e minPts
+
+# Experimento com valores de eps e minPts
+
+
+```
+
+b) *Determinando Ruídos:* Escolha o valor de *minPts* que obteve o melhor resultado no item anterior e use a função `kNNdistplot` do pacote `dbscan` para determinar o melhor valor de *eps* para esse valor de *minPts*. Lembre-se que o objetivo não é remover todos os ruídos. 
+
+```{r atv3b-code}
+# Encontrando o melhor eps com o kNNdistplot
+
+```
+
+c) *Visualizando os Grupos:* Após a escolha dos parâmetros *eps* e *minPts*, utilize o rótulo obtido para cada amostra, indicando o grupo ao qual ela pertence, para gerar um gráfico de dispersão (atribuindo cores diferentes para cada grupo).
+
+```{r atv3c-code}
+# Aplicando o DBscan com os parâmetros escolhidos
+
+# Construindo um gráfico de dispersão
+
+```
+
+## Análises
+
+Descreva os experimentos feitos para a escolha dos parâmetros *eps* e *minPts*. Inclua na sua análise as informações mais importantes que podemos retirar dos gráficos gerados. Justifique a escolha dos valores dos parâmetros e analise a apresentação dos dados no gráfico de dispersão. 
+
+
+**Resposta:** <!-- Escreva sua resposta abaixo -->
+
+
+<!-- Fim da resposta -->
+
+# Atividade 4 -- Comparando os Algoritmos
+
+<!-- Use o espaço abaixo para escrever os códigos necessários 
+	para responder as perguntas a seguir  -->
+
+```{r atv4-code}
+
+```
+
+Com base nas atividades anteriores, faça uma conclusão dos seus experimentos respondendo às seguintes perguntas: 
+
+a) Qual dos métodos apresentou melhores resultados? Justifique.
+
+b) Quantos agrupamentos foram obtidos?
+
+c) Analisando o campo `symboling` e o grupo designado para cada amostra, os agrupamentos conseguiram separar os níveis de risco?
+
+d) Analisando o campo `make` que contém as marcas dos carros, os agrupamentos conseguiram separar as marcas?
+
+
+**Respostas:** <!-- Escreva sua resposta abaixo -->
+
+
+<!-- Fim da resposta -->
+
+
+
+
