@@ -1,0 +1,207 @@
+---
+title: INF0613 -- Aprendizado de Máquina Não Supervisionado
+output: pdf_document
+subtitle: Trabalho 1 - Regras de Associação
+author: 
+  - Evandro Santos Rocha
+  - Laíssa Pacheco de Oliveira
+  - Rafael Dantas de Moura
+---
+
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE, error = FALSE, message = FALSE, warning = FALSE, tidy = FALSE)
+options(digits = 3)
+```
+
+Neste primeiro trabalho vamos minerar Regras de Associação em uma base de dados que contém as vendas de uma padaria. A base de dados está disponível na página da disciplina no Moodle (arquivo `bakery.csv`).
+
+# Atividade 0 -- Configurando o ambiente
+Antes de começar a implementação do seu trabalho configure o _workspace_ e importe todos os pacotes:
+
+```{r atv0-code}
+# Adicione os demais pacotes usados
+# Bibliotecas usadas neste trabalho:
+library(arules)
+
+# Configurando ambiente de trabalho:
+# setwd("~/Documentos/mdc/aprendizado_nao_supervisionado/trabalho1")
+```
+
+
+# Atividade 1 -- Análise Exploratória da Base de Dados (*3,0 pts*)
+
+Dado um caminho para uma base de dados, leia as transações e faça uma análise Exploratória sobre elas. Use as funções `summary`,  `inspect` e `itemFrequencyPlot`. Na função `inspect` limite sua análise às 10 primeiras transações e na função `itemFrequencyPlot` gere um gráfico com a frequência relativa dos 30 itens mais frequentes. 
+
+```{r atv1-code}
+# Ler transações
+transacoes <- read.transactions(file="bakery.csv", format="basket", 
+                                sep=",")
+
+# Visualizando transações
+inspect(transacoes[1:10])
+
+# Sumário da base
+summary(transacoes)
+
+# Analisando a frequência dos itens 
+itemFrequencyPlot(transacoes, topN = 30, type = "absolute")
+
+```
+
+
+## Análise 
+
+a) Descreva a base de dados discutindo os resultados das funções acima. 
+
+**Resposta:** <!-- Escreva sua resposta abaixo -->
+Pela função `summary`, acima, sabemos que a base de dados possui 2579 transações formadas por diferentes combinações de 91 itens.
+A mesma função mostra que os cinco itens mais frequentes nas transações são _coffe, bread, tea, cake, pastry_.
+
+A função `inspect` retorna o valor das 10 primeiras transações, o que nos possibilita ter uma ideia da estrutura da base. Apesar de 10 transações representar um espaço amostral pequeno em relação ao número total de transações da base, neste já podemos notar que pelo menos 1 dos 5 itens mais frequentes aparece em 9 das 10 primeiras transações.
+
+Outra ideia da estrutura da base pode ser vista na função `summary`, na parte referente à distribuição do tamanho das transações. Notamos que a maior parte das transações (1041 observações) possui 3 itens, seguido por transações de 2 itens (664 observações) e 4 itens (591 observações). A maior transação registrada possui 10 itens, e há apenas uma transação deste tamanho.
+
+Por fim, pela função `itemFrequencyPlot` temos uma visualização dos 30 itens mais frequentes. Nota-se que a partir do 5º item há uma queda contínua da frequência, tornando nítido a importância dos 4 primeiros em relação aos demais. Se pensamos que para além dos 30 há ainda mais 61 itens, podemos ter uma ideia do quão pouco representativos os últimos itens serão, no total de transações.
+<!-- Fim da resposta -->
+
+b) Ao gerarmos o gráfico de frequências, temos uma representação visual de uma informação já presente no resultado da função `summary`. Contudo, esse gráfico nos dá uma visão mais ampla da base. Assim podemos ver a frequência de outros itens em relação aos 10 mais frequentes. Quais informações podemos obter a partir desse gráfico (e da análise anterior) para nos ajudar na extração de regras de associação com o algoritmo `apriori`? Isto é, como a frequência dos itens pode afetar os parâmetros de configuração do algoritmo `apriori`? `
+
+**Resposta:** <!-- Escreva sua resposta abaixo -->
+Com uma base de dados composta por 91 itens, sabemos que o número total de conjuntos de itens possíveis é igual a 2^91^, e o número total de regras de associação é de $3^{91}-2^{91+1}+1$. Dado o alto custo e complexidade de se analisar tantos conjuntos e regras, o algortimo `apriori` se torna essencial justamente por fazer uma selação prévia dos conjuntos mais frequentes, a partir de valores de "corte" (valor de suporte).
+
+Se o valor de suporte for ajustado muito alto, pode-se perder conjuntos de itens envolvendo itens raros interessantes ou ainda selecionar um conjunto tão pequeno de itens que prejudicaria a criação de regras interessantes. Na prática, notamos que mesmo para os itens de maior frequência, apenas o _coffe_ aparece em mais de 50% das transações e o quinto item mais frequente, _pastry_, está presente em apenas 13.26% das transações. Como sabemos que o valor suporte de um conjunto de itens nunca é maior do que o suporte de seus subconjuntos (propriedade anti-monotônica do suporte), caso adotemos um valor alto de suporte, nem os conjuntos formados por itens mais frequentes passarão na validação da regra. 
+
+Assim, por temos uma base com muitos itens e sendo a maior parte deles pouco frequentes, para poder incluir alguns deles nas análises, será necessário testar valores baixos para o parâmetro suporte. Além disso, ao optarmos por um valor de suporte menor, temos mais chances de encontrar regras interessantes, com maior valor de confiança, para os itens menos frequentes.
+
+Por outro lado, se for atribuído um valor muito baixo para o parâmetro valor de suporte, isso resultaria em muitos conjuntos de itens frequentes, o que pode aumentar o número de candidatos e a dimensão máxima dos conjuntos de itens frequentes, o que poderia comprometer a confiabilidade da conclusão da regra.
+
+<!-- Fim da resposta -->
+
+# Atividade 2 -- Minerando Regras (*3,5 pts*)
+
+Use o algoritmo `apriori` para minerar regras na base de dados fornecida. Experimente com pelo menos *3 conjuntos* de valores diferentes de suporte e confiança para encontrar regras de associação. Imprima as cinco regras com o maior suporte de cada conjunto escolhido.  Lembre-se de usar seu conhecimento sobre a base, obtido na questão anterior, para a escolha dos valores de suporte e confiança.
+
+```{r atv2-code}
+# Conjunto 1: suporte = 0.15%   e confiança = 90%   
+regras_1 <- apriori(transacoes, parameter = 
+                    list(supp = 0.0015, conf = 0.9))
+regras_1 <- sort(regras_1, by="support", decreasing=TRUE)
+
+inspect(regras_1[1:5])
+
+
+# Conjunto 2: suporte = 0.7%   e confiança = 65%   
+regras_2 <- apriori(transacoes, parameter = 
+                    list(supp = 0.007, conf = 0.65))
+regras_2 <- sort(regras_2, by="support", decreasing=TRUE)
+
+inspect(regras_2[1:5])
+
+
+# Conjunto 3: suporte = 1%   e confiança = 60%   
+regras_3 <- apriori(transacoes, parameter = 
+                    list(supp = 0.01, conf = 0.6))
+regras_3 <- sort(regras_3, by="support", decreasing=TRUE)
+
+inspect(regras_3[1:5])
+
+
+# Conjunto 4: suporte = 0.5%   e confiança = 70%   
+regras_4 <- apriori(transacoes, parameter = 
+                    list(supp = 0.005, conf = 0.7))
+regras_4 <- sort(regras_4, by="support", decreasing=TRUE)
+
+inspect(regras_4[1:5])
+
+
+# Conjunto 5: suporte = 9%   e confiança = 30%   
+regras_5 <- apriori(transacoes, parameter = 
+                    list(supp = 0.09, conf = 0.3))
+regras_5 <- sort(regras_5, by="support", decreasing=TRUE)
+
+inspect(regras_5[1:5])
+
+
+```
+
+## Análises 
+a) Quais as regras mais interessantes geradas a partir dessa base? Justifique.
+
+**Resposta:** <!-- Escreva sua resposta abaixo -->
+Analisando apenas os valores de suporte e confiança, podemos dizer que as regras mais interessantes são, em ordem descrecente da frequência do item da esquerda:
+
+{Bread} => {Coffee} : 46,81% das transações que contém _bread_ também contém _coffee_
+
+{Cake}	=>	{Coffee} : 55,92 das transações que contém _cake_ também contém _coffee_
+
+{Tea}	=>	{Coffee} : 43,27% das transações que contém _tea_ também contém _coffee_
+
+Todas as regras acima foram obtidas no conjunto 5, que possui alto valor de suporte.
+
+Por outro lado, olhando apenas para o valor do lift, temos as seguintes regras como mais interessantes:
+
+{Bread,Extra Salami or Feta} => {Salad}
+
+{Extra Salami or Feta} => {Salad}
+
+Esses resultados foram obtidos em conjuntos com valor de suporte menor.
+<!-- Fim da resposta -->
+
+# Atividade 3 -- Medidas de Interesse (*3,5 pts*)
+
+Vimos na aula que, mesmo após as podas do algoritmo `apriori`, ainda temos algumas regras com características indesejáveis como redundâncias e dependência estatística negativa. Também vimos algumas medidas que nos ajudam a analisar melhor essas regras como o lift, a convicção e a razão de chances. Nesta questão, escolha um dos conjuntos de regras geradas na atividade anterior e o analise usando essas medidas. Compute as três medidas para o conjunto escolhido com a função `interestMeasure` e experimente ordenar as regras com cada uma das novas medidas.
+
+
+```{r atv3-code}
+# Compute as medidas de interesse 
+
+medidas <- interestMeasure(regras_4, c("conviction", "oddsRatio", "lift"), transacoes)
+
+
+# Apresente as regras ordenadas por lift
+
+   # solucao utilizando a regras_2
+   #inspect(sort(regras_2, by="lift", decreasing=TRUE))
+
+order_lift <- order(medidas$lift, decreasing = TRUE)
+inspect(regras_4[order_lift])
+
+
+# Apresente as regras ordenadas por convicção
+
+order_conviction <- order(medidas$conviction, decreasing = TRUE)
+inspect(regras_4[order_conviction])
+
+
+# Apresente as regras ordenadas por razão de chances
+order_oddsRatio <- order(medidas$oddsRatio, decreasing = TRUE)
+inspect(regras_4[order_oddsRatio])
+
+
+
+```
+
+
+## Análise 
+a) Quais as regras mais interessantes do conjunto? Justifique.
+
+**Resposta:** <!-- Escreva sua resposta abaixo -->
+
+Considerando apenas o conjunto 4, as regras mais interessantes são:
+
+{Extra Salami or Feta} => {Salad}
+
+{Coffee,Extra Salami or Feta} => {Salad}
+
+Ambas regras possuem o maior valor para o lift, que mede o grau da independência entre os dois lados (antecedente e consequente) de uma regra de associação. Esse valor pode variar de 0 a infinito, e quanto mais próximo de 1, menos interessante a regra é, pois indica que os itens do lhs (left hand side) e o rhs (right hand side) são independentes. Se os dois valores são independentes, o aumento no consumo de um item não implicará, necessariamente, o consumo do outro. 
+
+Para a convicção, é esperado que regras mais interessantes apresentem valores entre 1 e 5, o que ocorre para as regras acima.
+
+Para a razão de chances, temos que quanto maior o valor, maiores as chances do lado direito ocorrer na presença do dos itens do lado esquerdo. Ambas regras possuem os maiores valores para esta medida.
+
+É útil ressaltar que apesar de serem as regras mais interessantes do ponto de vista da independência, essas regras ocorrem, respectivamente, em apenas 16 e 14 das 2579 transações. Sendo assim, apesar de serem as regras mais confiáveis, a baixa frequência desse conjunto poderia significar, do ponto de vista estratégico, pouco relevante para o tomador de decisões, dependendo das características do ramo de atividade.
+
+Por fim, nota-se a diferença das melhores regras obtidas após considerar as medidas de interesse, se comparadas com as melhores regras obtidas apenas observando os valores de suporte e confiança. Essa diferença pode ser explicada pela grande quantidade de regras cujos itens são independentes, principalmente quando se privilegia altos valores de suporte, para um banco de dados cuja frequência da maior parte dos itens é baixa.
+<!-- Fim da resposta -->
+
