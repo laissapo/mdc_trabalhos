@@ -69,8 +69,8 @@ any(is.na(train_val_set))
 summary(train_val_set)
 # informacoes interessantes:
 # age: tem máximo igual a 99.
-# sex: possui fator/classe "not informed"
 # lives_in_Wuhan: possui fator/classe "not informed"
+# sex: possui fator/classe "not informed"
 # chronic_disease_binary: possui somente 32 exemplos (0.0879%)
 
 # olhando alguns dos dados interessantes
@@ -105,6 +105,11 @@ merge(dataTrain, dataVal)
 #merge(dataTrain, dataTest)
 #merge(dataVal, dataTest)
 
+dim(dataTrain)
+#[1] 24280    15
+dim(dataVal)
+#[1] 6071   15
+
 #------------------------------------------------#
 # Faz o balanceamento das classes
 #------------------------------------------------#
@@ -127,10 +132,22 @@ dim(dataTrainOnTreatment)
 dim(dataTrainRecovered)
 #[1] 5662   15
 
-randomNoIdx <- sample(1:nrow(dataTrainNo), size=1.4*nrow(dataTrainYes))
-subsamplingNo <- dataTrainNo[randomNoIdx,]
-dataTrain <- rbind(dataTrainYes, subsamplingNo)
+#TODO: podemos fazer assim um undersampling com 3 classes?
 
+randomOnTreatmentIdx <- sample(1:nrow(dataTrainOnTreatment), size=1.5*nrow(dataTrainDead))
+subsamplingOnTreatment <- dataTrainOnTreatment[randomOnTreatmentIdx,]
+
+randomRecoveredIdx <- sample(1:nrow(dataTrainRecovered), size=1.4*nrow(dataTrainDead))
+subsamplingRecovered <- dataTrainRecovered[randomRecoveredIdx,]
+
+dataTrain <- rbind(dataTrainDead, subsamplingOnTreatment, subsamplingRecovered)
+
+dim(dataTrain)
+#[1] 5506   15
+
+table(dataTrain$label)
+#dead onTreatment   recovered 
+#1412        2118        1976 
 
 ###############################################################################
 # Questao 2                                                                   #
@@ -140,6 +157,65 @@ dataTrain <- rbind(dataTrainYes, subsamplingNo)
 # e teste.                                                                    #
 #                                                                             #
 ###############################################################################
+
+
+## Árvore de Decisão
+help(rpart)
+
+# minsplit = número mínimo de exemplos em um nó para que ele gere nós 
+# filhos.
+# cp = fator que determina o quanto o erro no conjunto de treinamento deve 
+# ser diminuido para que a geração de filhos (split) seja realizada. 
+# xval = número de validações cruzadas que serão realizadas. Ou seja, 
+# xval = 10 significa que a divisão treinamento/validação será realizado 10
+# vezes. 
+
+summary(dataTrain)
+head(dataTrain,0)
+colnames(dataTrain)
+#label
+#age, sex, country, latitude, longitude, date_onset_symptoms, 
+#date_admission_hospital, date_confirmation, lives_in_Wuhan,
+#travel_history_dates, travel_history_location, chronic_disease_binary,
+#date_death_or_discharge, travel_history_binary
+
+
+# Se quisermos usar como critério a Entropia + Ganho de Informação - parâmetro
+# "information"
+treeModel <- rpart(formula=label ~ age + sex + country + latitude + longitude + 
+                       date_onset_symptoms + date_admission_hospital + 
+                       date_confirmation + lives_in_Wuhan + travel_history_dates + 
+                       travel_history_location + chronic_disease_binary +
+                       date_death_or_discharge + travel_history_binary, 
+                   data=dataTrain, method="class",
+                   control=rpart.control(minsplit=2, cp=0.0, xval = 10),
+                   parms= list(split="information"))
+
+
+summary(treeModel)
+
+######### Avaliação no conjunto de Validação ##########
+
+# Vamos ver a performance no conjunto de validação
+val_pred <- predict(treeModel, dataVal, type="class")
+cm <- confusionMatrix(data = as.factor(val_pred), 
+                      reference = as.factor(dataVal$label), 
+                      positive='yes')
+
+cm_relative <- calculaMatrizConfusaoRelativa(cm)
+cm_relative
+
+#              Prediction
+#Reference      dead onTreatment recovered
+#dead           0.99        0.01      0.00
+#onTreatment    0.00        0.83      0.16
+#recovered      0.00        0.18      0.82
+
+#TODO: é assim que calcula a acurácia balanceada com 3 classes?
+acc_bal <- (cm_relative[1,1] + cm_relative[2,2]+ cm_relative[3,3])/3
+acc_bal
+#[1] 0.88
+
 
 
 ###############################################################################
@@ -155,6 +231,56 @@ dataTrain <- rbind(dataTrainYes, subsamplingNo)
 #                                                                             #
 ###############################################################################
 
+########## ACC Vs Depth 
+# Vamos ver como as acurácias no conjunto de treinamento e de validação
+# variam conforme variamos o tamanho limite das arvores
+number_of_depths = 30
+accPerDepth <- data.frame(depth=numeric(number_of_depths), 
+                          accTrain=numeric(number_of_depths), 
+                          accVal=numeric(number_of_depths))
+summary(accPerDepth)
+for (maxDepth in 1:number_of_depths){
+    treeModel <- rpart(formula=label ~ age + sex + country + latitude + longitude + 
+                           date_onset_symptoms + date_admission_hospital + 
+                           date_confirmation + lives_in_Wuhan + travel_history_dates + 
+                           travel_history_location + chronic_disease_binary +
+                           date_death_or_discharge + travel_history_binary, 
+                       data=dataTrain, method="class",
+                       control=rpart.control(minsplit=2, cp=0.0, 
+                                             maxdepth=maxDepth, xval = 0),
+                       parms= list(split="information"))
+    
+    # Avaliando no conjunto de treino
+    train_pred <- predict(treeModel, dataTrain, type="class")
+    cm_train <- confusionMatrix(data = as.factor(train_pred), 
+                                reference = as.factor(dataTrain$label), 
+                                positive='yes')
+    
+    cm_relative_train <- calculaMatrizConfusaoRelativa(cm_train)
+    acc_bal_train <- (cm_relative_train[1,1] + cm_relative_train[2,2] + cm_relative_train[3,3])/3
+    
+    # Avaliando no conjunto de validacao
+    val_pred <- predict(treeModel, dataVal, type="class")
+    cm_val <- confusionMatrix(data = as.factor(val_pred), 
+                              reference = as.factor(dataVal$label), 
+                              positive='yes')
+    
+    cm_relative_val <- calculaMatrizConfusaoRelativa(cm_val)
+    acc_bal_val <- (cm_relative_val[1,1] + cm_relative_val[2,2] + cm_relative_val[3,3])/3
+    
+    accPerDepth[maxDepth,] = c(maxDepth, acc_bal_train, 
+                               acc_bal_val)
+}
+
+
+accPerDepth <- melt(accPerDepth, id="depth")  # convert to long format
+ggplot(data=accPerDepth, aes(x=depth, y=value, colour=variable)) + geom_line() + geom_point()
+
+#ponto ótimo: Depth entre 24 e 30
+bestMaxdepth <- 6
+#TODO: avaliar cm_relative e acc_bal no ponto ótimo para o conjunto de teste
+
+
 ###############################################################################
 # Questao 4                                                                   #
 # ---------                                                                   #
@@ -165,6 +291,142 @@ dataTrain <- rbind(dataTrainYes, subsamplingNo)
 # conjunto de teste.                                                          #
 #                                                                             #
 ###############################################################################
+
+# inicialmente, montamos uma treemodel com todos os atributos
+# já considerando o ponto ótimo
+treeModel <- rpart(formula=label ~ age + sex + country + latitude + longitude + 
+                       date_onset_symptoms + date_admission_hospital + 
+                       date_confirmation + lives_in_Wuhan + travel_history_dates + 
+                       travel_history_location + chronic_disease_binary +
+                       date_death_or_discharge + travel_history_binary, 
+                   data=dataTrain, method="class",
+                   control=rpart.control(minsplit=2, cp=0.0, xval = 10, 
+                                         maxdepth = bestMaxdepth),
+                   parms= list(split="information"))
+
+### Verificando a importância de cada feature ###
+importance_per_feature <- treeModel$variable.importance
+relative_importance <- importance_per_feature/sum(importance_per_feature)
+relative_importance
+
+#date_death_or_discharge date_admission_hospital    longitude           country         travel_history_dates 
+#0.198830664             0.169547052                0.142591808         0.130334307     0.125587257 
+#
+#lives_in_Wuhan     date_confirmation       age                     sex                latitude 
+#0.113791551        0.038692977             0.029197919             0.023367576        0.021469471 
+#
+#travel_history_location    travel_history_binary     date_onset_symptoms 
+#0.003751942                0.001533264             0.001304214
+
+#date_death_or_discharge date_admission_hospital    country               longitude    travel_history_dates 
+#0.210234483             0.179271326                0.137720335           0.133628445             0.132532336 
+#lives_in_Wuhan                 age                     sex       date_confirmation     travel_history_location 
+#0.120318000             0.030035061             0.024707810             0.023966919             0.003676689 
+#travel_history_binary     date_onset_symptoms          latitude 
+#0.001330760                0.001318488                 0.001259349 
+
+
+# Primeiro subconjunto: features que têm grande importância relativa (maior que 10%)
+
+treeModel_1 <- rpart(formula=label ~ country + longitude + 
+                       date_admission_hospital + 
+                       lives_in_Wuhan + travel_history_dates + 
+                       date_death_or_discharge, 
+                   data=dataTrain, method="class",
+                   control=rpart.control(minsplit=2, cp=0.0, xval = 10, 
+                                         maxdepth = bestMaxdepth),
+                   parms= list(split="information"))
+
+# Segundo subconjunto: poucas features que têm grande importância (soma de importância ~ 65%)
+
+treeModel_2 <- rpart(formula=label ~ country + longitude + 
+                         date_admission_hospital + 
+                         date_death_or_discharge, 
+                     data=dataTrain, method="class",
+                     control=rpart.control(minsplit=2, cp=0.0, xval = 10, 
+                                           maxdepth = bestMaxdepth),
+                     parms= list(split="information"))
+
+# Terceiro subconjunto: features que têm grande importância (> 10%) mais a chronic_disease_binary (que não foi reportada na lista de importancia)
+treeModel_3 <- rpart(formula=label ~ country + longitude + 
+                       date_admission_hospital + 
+                       lives_in_Wuhan + travel_history_dates + 
+                       chronic_disease_binary +
+                       date_death_or_discharge, 
+                   data=dataTrain, method="class",
+                   control=rpart.control(minsplit=2, cp=0.0, xval = 10, 
+                                         maxdepth = bestMaxdepth),
+                   parms= list(split="information"))
+
+######### Avaliação no conjunto de Validação - treeModel_1 ##########
+
+# Vamos ver a performance no conjunto de validação
+val_pred <- predict(treeModel_1, dataVal, type="class")
+cm <- confusionMatrix(data = as.factor(val_pred), 
+                      reference = as.factor(dataVal$label), 
+                      positive='yes')
+
+cm_relative <- calculaMatrizConfusaoRelativa(cm)
+cm_relative
+
+#              Prediction
+#Reference      dead onTreatment recovered
+#dead        1.00        0.00      0.00
+#onTreatment 0.00        0.83      0.17
+#recovered   0.00        0.40      0.60
+
+#TODO: é assim que calcula a acurácia balanceada com 3 classes?
+acc_bal <- (cm_relative[1,1] + cm_relative[2,2]+ cm_relative[3,3])/3
+acc_bal
+#[1] 0.81
+
+######### Avaliação no conjunto de Validação - treeModel_2 ##########
+
+# Vamos ver a performance no conjunto de validação
+val_pred <- predict(treeModel_2, dataVal, type="class")
+cm <- confusionMatrix(data = as.factor(val_pred), 
+                      reference = as.factor(dataVal$label), 
+                      positive='yes')
+
+cm_relative <- calculaMatrizConfusaoRelativa(cm)
+cm_relative
+
+#              Prediction
+#Reference      dead onTreatment recovered
+#dead        1.00        0.00      0.00
+#onTreatment 0.00        0.83      0.17
+#recovered   0.00        0.40      0.60
+
+#TODO: é assim que calcula a acurácia balanceada com 3 classes?
+acc_bal <- (cm_relative[1,1] + cm_relative[2,2]+ cm_relative[3,3])/3
+acc_bal
+#[1] 0.81
+
+######### Avaliação no conjunto de Validação - treeModel_3 ##########
+
+# Vamos ver a performance no conjunto de validação
+val_pred <- predict(treeModel_3, dataVal, type="class")
+cm <- confusionMatrix(data = as.factor(val_pred), 
+                      reference = as.factor(dataVal$label), 
+                      positive='yes')
+
+cm_relative <- calculaMatrizConfusaoRelativa(cm)
+cm_relative
+
+#              Prediction
+#Reference      dead onTreatment recovered
+#dead        1.00        0.00      0.00
+#onTreatment 0.00        0.83      0.17
+#recovered   0.00        0.40      0.60
+
+#TODO: é assim que calcula a acurácia balanceada com 3 classes?
+acc_bal <- (cm_relative[1,1] + cm_relative[2,2]+ cm_relative[3,3])/3
+acc_bal
+#[1] 0.81
+
+
+#TODO: avaliar no conjunto de teste
+
 
 ###############################################################################
 # Questao 5                                                                   #
@@ -177,6 +439,106 @@ dataTrain <- rbind(dataTrainYes, subsamplingNo)
 # acurácia balanceada no teste para a floresta com o melhor número de árvores.#s
 #                                                                             #
 ###############################################################################
+
+help(randomForest)
+
+
+# Treina uma Floresta Aleatória
+rfModel <- randomForest(formula=label ~ age + sex + country + latitude + longitude + 
+                            date_onset_symptoms + date_admission_hospital + 
+                            date_confirmation + lives_in_Wuhan + travel_history_dates + 
+                            travel_history_location + chronic_disease_binary +
+                            date_death_or_discharge + travel_history_binary, 
+                        data= dataTrain, ntree=100, mtry=7)
+
+# Plotando o erro para cada classe a para OOB. Para saber
+# o significado e explicacao do OOB veja o exercicio 07 
+# na secao de Floresta Aleatoria.
+
+layout(matrix(c(1,2),nrow=1), width=c(4,1)) 
+par(mar=c(5,4,4,0)) # Sem margem no lado direito
+plot(rfModel, log="y")
+par(mar=c(5,0,4,2)) # Sem margem do lado esquerdo
+plot(c(0,1),type="n", axes=F, xlab="", ylab="")
+legend("top", colnames(rfModel$err.rate),col=1:4,cex=0.8,fill=1:4)
+
+
+# Matriz de Confusão
+val_pred <- predict(rfModel, dataVal, type="class")
+cm <- confusionMatrix(data = as.factor(val_pred), 
+                      reference = as.factor(dataVal$label), 
+                      positive='yes')
+
+cm_relative <- calculaMatrizConfusaoRelativa(cm)
+cm_relative
+
+#               Prediction
+#Reference      dead onTreatment recovered
+#dead        1.00        0.00      0.00
+#onTreatment 0.00        0.74      0.25
+#recovered   0.00        0.01      0.98
+
+
+acc_bal <- (cm_relative[1,1] + cm_relative[2,2] + cm_relative[3,3])/3
+acc_bal
+#[1] 0.9066667
+
+
+# Vamos verificar agora como as acurácias de treinamento e de validação
+# variam com o número de árvores na floresta aleatória
+nTreeList = c(1, 5, 10, 25, 50, 75, 100, 150, 200, 250, 500)
+nTreeList = c(1, 5, 10, 25, 50, 100, 250, 500) #, 1000)
+nTreeList = c(1, 2, 3, 5, 8, 10, 15, 20, 25, 50, 100, 150) #, 1000)
+nTreeList = c(1, 2, 3, 5, 8, 10, 11:25, 30, 35, 40) # legal para mostrar no gráfico
+nTreeList = c(1, 2, 3, 5, 8, 10, 11:25, 30, 35, 40, 50, 100, 150, 200, 500) # legal para mais longe, mas nao mostra o ponto/região ótimo
+accPerNTrees <- data.frame(ntree=numeric(length(nTreeList)), 
+                           accTrain=numeric(length(nTreeList)), 
+                           accVal=numeric(length(nTreeList)))
+
+for (i in 1:length(nTreeList)){
+    
+    cat("i: ", i, "\t ntree: ", nTreeList[i])
+    
+    
+    rfModel <- randomForest(formula=label ~ age + sex + country + latitude + longitude + 
+                                date_onset_symptoms + date_admission_hospital + 
+                                date_confirmation + lives_in_Wuhan + travel_history_dates + 
+                                travel_history_location + chronic_disease_binary +
+                                date_death_or_discharge + travel_history_binary, 
+                            data= dataTrain, ntree=nTreeList[i], mtry=7)
+    
+    # Avaliando no conjunto de treino
+    train_pred <- predict(rfModel, dataTrain, type="class")
+    cm_train <- confusionMatrix(data = as.factor(train_pred), 
+                                reference = as.factor(dataTrain$label), 
+                                positive='yes')
+    
+    cm_relative_train <- calculaMatrizConfusaoRelativa(cm_train)
+    acc_bal_train <- (cm_relative_train[1,1] + cm_relative_train[2,2] + cm_relative_train[3,3])/3
+    
+    # Avaliando no conjunto de validacao
+    val_pred <- predict(rfModel, dataVal, type="class")
+    cm_val <- confusionMatrix(data = as.factor(val_pred), 
+                              reference = as.factor(dataVal$label), 
+                              positive='yes')
+    
+    cm_relative_val <- calculaMatrizConfusaoRelativa(cm_val)
+    acc_bal_val <- (cm_relative_val[1,1] + cm_relative_val[2,2] + cm_relative_val[3,3])/3
+    
+    accPerNTrees[i,] = c(nTreeList[i], 
+                         acc_bal_train, 
+                         acc_bal_val)
+    
+    cat("\t acc_bal_train: ", acc_bal_train, "\t acc_bal_val: ", acc_bal_val, "\n")
+}
+
+accPerNTrees <- melt(accPerNTrees, id="ntree")  # convert to long format
+ggplot(data=accPerNTrees, aes(x=ntree, y=value, colour=variable)) + geom_line() + geom_point()
+
+bestNTree <- 20
+
+#TODO: aplicar no conjunto de teste
+
 
 ###############################################################################
 # Questao 6.a                                                                 #
@@ -206,7 +568,38 @@ dataTrain <- rbind(dataTrainYes, subsamplingNo)
 ###############################################################################
 
 
+###############################################################################
+# Opcional 1                                                                  #
+# -----------                                                                 #
+#                                                                             #
+# Implementem manualmente o protocolo Random Forest de forma que cada         #
+# árvore na floresta tenha as mesmas quantidades de exemplos das três         #
+# classes. Note que, para cada modelo, vocês devem selecionar com repetição   #
+# um subconjunto de exemplos de cada uma das classe para treiná-lo.           #
+#                                                                             #
+###############################################################################
 
+ 
+
+###############################################################################
+# Opcional 2                                                                  #
+# -----------                                                                 #
+#                                                                             #
+# Variem o número de features consideradas no treinamento.                    #
+# Utilizando raiz_quadrada(m), m/2 e 3m/4 atributos, em que m é o número      #
+# total de atributos que vocês têm disponível.                                #
+#                                                                             #
+###############################################################################
+
+###############################################################################
+# Opcional 3                                                                  #
+# -----------                                                                 #
+#                                                                             #
+# Reportem seus resultados e suas conclusões no relatório. Esses              #
+# resultados foram melhores que os modelos treinados realizando o             #
+# balanceamento a priori?                                                     #
+#                                                                             #
+###############################################################################
 
 
 
