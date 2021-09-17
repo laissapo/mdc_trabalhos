@@ -160,7 +160,7 @@ table(dataTrain$label)
 
 
 ## Árvore de Decisão
-help(rpart)
+#help(rpart)
 
 # minsplit = número mínimo de exemplos em um nó para que ele gere nós 
 # filhos.
@@ -234,7 +234,7 @@ acc_bal
 ########## ACC Vs Depth 
 # Vamos ver como as acurácias no conjunto de treinamento e de validação
 # variam conforme variamos o tamanho limite das arvores
-number_of_depths = 30
+number_of_depths = 15
 accPerDepth <- data.frame(depth=numeric(number_of_depths), 
                           accTrain=numeric(number_of_depths), 
                           accVal=numeric(number_of_depths))
@@ -247,7 +247,7 @@ for (maxDepth in 1:number_of_depths){
                            date_death_or_discharge + travel_history_binary, 
                        data=dataTrain, method="class",
                        control=rpart.control(minsplit=2, cp=0.0, 
-                                             maxdepth=maxDepth, xval = 0),
+                                             maxdepth=maxDepth, xval = 10),
                        parms= list(split="information"))
     
     # Avaliando no conjunto de treino
@@ -278,6 +278,13 @@ ggplot(data=accPerDepth, aes(x=depth, y=value, colour=variable)) + geom_line() +
 
 #ponto ótimo: Depth entre 24 e 30
 bestMaxdepth <- 6
+
+#acurácia no ponto ótimo
+accPerDepth[accPerDepth$depth == bestMaxdepth,]
+#depth variable     value
+#6      6 accTrain 0.9066667
+#21     6   accVal 0.9033333
+
 #TODO: avaliar cm_relative e acc_bal no ponto ótimo para o conjunto de teste
 
 
@@ -304,26 +311,21 @@ treeModel <- rpart(formula=label ~ age + sex + country + latitude + longitude +
                                          maxdepth = bestMaxdepth),
                    parms= list(split="information"))
 
+#TODO: por que a feature chronic_disease_binary não foi reportada? Ela apareceu poucas vezes como "true", mas a maioria está com a classe "dead"
+
 ### Verificando a importância de cada feature ###
 importance_per_feature <- treeModel$variable.importance
 relative_importance <- importance_per_feature/sum(importance_per_feature)
 relative_importance
 
-#date_death_or_discharge date_admission_hospital    longitude           country         travel_history_dates 
-#0.198830664             0.169547052                0.142591808         0.130334307     0.125587257 
+#date_death_or_discharge    date_admission_hospital     country         longitude    travel_history_dates 
+#0.210234483                0.179271326                0.137720335      0.133628445             0.132532336 
 #
-#lives_in_Wuhan     date_confirmation       age                     sex                latitude 
-#0.113791551        0.038692977             0.029197919             0.023367576        0.021469471 
-#
-#travel_history_location    travel_history_binary     date_onset_symptoms 
-#0.003751942                0.001533264             0.001304214
-
-#date_death_or_discharge date_admission_hospital    country               longitude    travel_history_dates 
-#0.210234483             0.179271326                0.137720335           0.133628445             0.132532336 
 #lives_in_Wuhan                 age                     sex       date_confirmation     travel_history_location 
 #0.120318000             0.030035061             0.024707810             0.023966919             0.003676689 
-#travel_history_binary     date_onset_symptoms          latitude 
-#0.001330760                0.001318488                 0.001259349 
+#
+#travel_history_binary     date_onset_symptoms        latitude 
+#0.001330760             0.001318488                0.001259349
 
 
 # Primeiro subconjunto: features que têm grande importância relativa (maior que 10%)
@@ -337,7 +339,9 @@ treeModel_1 <- rpart(formula=label ~ country + longitude +
                                          maxdepth = bestMaxdepth),
                    parms= list(split="information"))
 
-# Segundo subconjunto: poucas features que têm grande importância (soma de importância ~ 65%)
+prp(treeModel_1)
+
+# Segundo subconjunto: poucas features que têm grande importância (soma de importância ~ 66%)
 
 treeModel_2 <- rpart(formula=label ~ country + longitude + 
                          date_admission_hospital + 
@@ -347,16 +351,21 @@ treeModel_2 <- rpart(formula=label ~ country + longitude +
                                            maxdepth = bestMaxdepth),
                      parms= list(split="information"))
 
-# Terceiro subconjunto: features que têm grande importância (> 10%) mais a chronic_disease_binary (que não foi reportada na lista de importancia)
-treeModel_3 <- rpart(formula=label ~ country + longitude + 
-                       date_admission_hospital + 
-                       lives_in_Wuhan + travel_history_dates + 
-                       chronic_disease_binary +
-                       date_death_or_discharge, 
+prp(treeModel_2)
+
+# Terceiro subconjunto: features que dizem respeito ao individuo, sintomas e viagem 
+treeModel_3 <- rpart(formula=label ~ 
+                         age + sex + chronic_disease_binary +
+                         date_onset_symptoms + date_admission_hospital + 
+                         date_confirmation +
+                         lives_in_Wuhan + travel_history_dates + 
+                         travel_history_location + travel_history_binary,
                    data=dataTrain, method="class",
                    control=rpart.control(minsplit=2, cp=0.0, xval = 10, 
                                          maxdepth = bestMaxdepth),
                    parms= list(split="information"))
+
+prp(treeModel_3)
 
 ######### Avaliação no conjunto de Validação - treeModel_1 ##########
 
@@ -416,13 +425,13 @@ cm_relative
 #              Prediction
 #Reference      dead onTreatment recovered
 #dead        1.00        0.00      0.00
-#onTreatment 0.00        0.83      0.17
-#recovered   0.00        0.40      0.60
+#onTreatment 0.00        0.74      0.26
+#recovered   0.00        0.02      0.98
 
 #TODO: é assim que calcula a acurácia balanceada com 3 classes?
 acc_bal <- (cm_relative[1,1] + cm_relative[2,2]+ cm_relative[3,3])/3
 acc_bal
-#[1] 0.81
+#[1] 0.9066667
 
 
 #TODO: avaliar no conjunto de teste
@@ -440,7 +449,7 @@ acc_bal
 #                                                                             #
 ###############################################################################
 
-help(randomForest)
+#help(randomForest)
 
 
 # Treina uma Floresta Aleatória
@@ -475,13 +484,12 @@ cm_relative
 #               Prediction
 #Reference      dead onTreatment recovered
 #dead        1.00        0.00      0.00
-#onTreatment 0.00        0.74      0.25
-#recovered   0.00        0.01      0.98
-
+#onTreatment 0.00        0.74      0.26
+#recovered   0.00        0.01      0.99
 
 acc_bal <- (cm_relative[1,1] + cm_relative[2,2] + cm_relative[3,3])/3
 acc_bal
-#[1] 0.9066667
+#[1] 0.91
 
 
 # Vamos verificar agora como as acurácias de treinamento e de validação
