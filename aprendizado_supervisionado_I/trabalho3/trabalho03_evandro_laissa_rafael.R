@@ -89,9 +89,8 @@ dim(unique(train_val_set))
 dim(train_val_set) - dim(unique(train_val_set))
 # há 6070 exemplos duplicados...
 
-#TODO: remover os duplicados?
+#remover os duplicados
 train_val_set <- unique(train_val_set)
-
 
 #------------------------------------------------#
 # Conjuntos de Treinamento e Validacao
@@ -132,22 +131,35 @@ dim(dataTrainOnTreatment)
 dim(dataTrainRecovered)
 #[1] 5662   15
 
-#TODO: podemos fazer assim um undersampling com 3 classes?
-
-randomOnTreatmentIdx <- sample(1:nrow(dataTrainOnTreatment), size=1.5*nrow(dataTrainDead))
+# 1.5 : ficou ruim (acc = 0.91)
+# 2.5 : mostrou melhor desenho (acc = 0.906)
+# 3.5 : piorou a acuracia (acc = 0.85)
+# 2.1 : bom desenho e boa acuracia (acc = 0.91)
+randomOnTreatmentIdx <- sample(1:nrow(dataTrainOnTreatment), size=2.1*nrow(dataTrainDead))
 subsamplingOnTreatment <- dataTrainOnTreatment[randomOnTreatmentIdx,]
 
+# 1.4 : ficou ruim (acc = 0.91)
+# 2.4 : piorou, a curva desenhada parece que nao está bem balanceada (acc = 0.91)
+# 1.2 : melhorou a curva, mas 1.4 parece melhor
+# 1.6 : melhorou bem o desenho (acc = 0.91)
 randomRecoveredIdx <- sample(1:nrow(dataTrainRecovered), size=1.4*nrow(dataTrainDead))
 subsamplingRecovered <- dataTrainRecovered[randomRecoveredIdx,]
+
+# (2.1, 1.4) : desenho bom, acc = 0.91                      <<<<<--- melhor desenho
+# (2.1, 1.6) : desenho quase bom, acc = 0.913333            <<<<<--- melhor acurácia
+# (3.0, 3.0) : desenho melhor que o anterior, acc = 0.9133333
+# (3.5, 3.0) : piorou o desenho
+# (1.5, 3.0) : piorou tudo
+# (4.5, 3.0) : melhor que o anterior, mas a acc = 0.91
 
 dataTrain <- rbind(dataTrainDead, subsamplingOnTreatment, subsamplingRecovered)
 
 dim(dataTrain)
-#[1] 5506   15
+#[1] 6353   15
 
 table(dataTrain$label)
 #dead onTreatment   recovered 
-#1412        2118        1976 
+#1412        2965        1976 
 
 ###############################################################################
 # Questao 2                                                                   #
@@ -207,14 +219,13 @@ cm_relative
 
 #              Prediction
 #Reference      dead onTreatment recovered
-#dead           0.99        0.01      0.00
-#onTreatment    0.00        0.83      0.16
-#recovered      0.00        0.18      0.82
+#dead           0.98        0.01      0.00
+#onTreatment    0.00        0.84      0.15
+#recovered      0.00        0.22      0.78
 
-#TODO: é assim que calcula a acurácia balanceada com 3 classes?
 acc_bal <- (cm_relative[1,1] + cm_relative[2,2]+ cm_relative[3,3])/3
 acc_bal
-#[1] 0.88
+#[1] 0.8666667
 
 
 
@@ -276,14 +287,14 @@ for (maxDepth in 1:number_of_depths){
 accPerDepth <- melt(accPerDepth, id="depth")  # convert to long format
 ggplot(data=accPerDepth, aes(x=depth, y=value, colour=variable)) + geom_line() + geom_point()
 
-#ponto ótimo: Depth entre 24 e 30
-bestMaxdepth <- 6
+#ponto ótimo
+bestMaxdepth <- 8
 
 #acurácia no ponto ótimo
 accPerDepth[accPerDepth$depth == bestMaxdepth,]
 #depth variable     value
-#6      6 accTrain 0.9066667
-#21     6   accVal 0.9033333
+#8      8 accTrain 0.9100000
+#23     8   accVal 0.9033333
 
 #TODO: avaliar cm_relative e acc_bal no ponto ótimo para o conjunto de teste
 
@@ -318,14 +329,14 @@ importance_per_feature <- treeModel$variable.importance
 relative_importance <- importance_per_feature/sum(importance_per_feature)
 relative_importance
 
-#date_death_or_discharge    date_admission_hospital     country         longitude    travel_history_dates 
-#0.210234483                0.179271326                0.137720335      0.133628445             0.132532336 
-#
-#lives_in_Wuhan                 age                     sex       date_confirmation     travel_history_location 
-#0.120318000             0.030035061             0.024707810             0.023966919             0.003676689 
-#
-#travel_history_binary     date_onset_symptoms        latitude 
-#0.001330760             0.001318488                0.001259349
+#date_death_or_discharge date_admission_hospital                 country    travel_history_dates 
+#0.210065921             0.172110982             0.136710490             0.131942896 
+#longitude          lives_in_Wuhan                     age       date_confirmation 
+#0.131503242             0.119467822             0.030831058             0.028802451 
+#sex travel_history_location                latitude   travel_history_binary 
+#0.022846366             0.005514022             0.004957255             0.003309809 
+#date_onset_symptoms 
+#0.001937687
 
 
 # Primeiro subconjunto: features que têm grande importância relativa (maior que 10%)
@@ -387,7 +398,7 @@ cm_relative
 #TODO: é assim que calcula a acurácia balanceada com 3 classes?
 acc_bal <- (cm_relative[1,1] + cm_relative[2,2]+ cm_relative[3,3])/3
 acc_bal
-#[1] 0.81
+#[1] 0.8033333
 
 ######### Avaliação no conjunto de Validação - treeModel_2 ##########
 
@@ -409,7 +420,7 @@ cm_relative
 #TODO: é assim que calcula a acurácia balanceada com 3 classes?
 acc_bal <- (cm_relative[1,1] + cm_relative[2,2]+ cm_relative[3,3])/3
 acc_bal
-#[1] 0.81
+#[1] 0.8
 
 ######### Avaliação no conjunto de Validação - treeModel_3 ##########
 
@@ -431,7 +442,7 @@ cm_relative
 #TODO: é assim que calcula a acurácia balanceada com 3 classes?
 acc_bal <- (cm_relative[1,1] + cm_relative[2,2]+ cm_relative[3,3])/3
 acc_bal
-#[1] 0.9066667
+#[1] 0.9
 
 
 #TODO: avaliar no conjunto de teste
@@ -497,8 +508,15 @@ acc_bal
 nTreeList = c(1, 5, 10, 25, 50, 75, 100, 150, 200, 250, 500)
 nTreeList = c(1, 5, 10, 25, 50, 100, 250, 500) #, 1000)
 nTreeList = c(1, 2, 3, 5, 8, 10, 15, 20, 25, 50, 100, 150) #, 1000)
-nTreeList = c(1, 2, 3, 5, 8, 10, 11:25, 30, 35, 40) # legal para mostrar no gráfico
-nTreeList = c(1, 2, 3, 5, 8, 10, 11:25, 30, 35, 40, 50, 100, 150, 200, 500) # legal para mais longe, mas nao mostra o ponto/região ótimo
+
+# legal para mostrar no gráfico
+nTreeList = c(1, 2, 3, 5, 8, 10, 11:25, 30, 35, 40) 
+
+# legal para mostrar mais, mas nao mostra o ponto/região ótimo
+nTreeList = c(1, 2, 3, 5, 8, 10, 11:25, 30, 35, 40, 50, 100, 150, 200, 500) 
+nTreeList = c(1, 2, 3, 5, 8, 10, 11:25, 30, 35, 40, 50, 75, 100, 125, 200, 300, 500) 
+nTreeList = c(1, 2, 3, 5, 8, 10, 11:25, 30, 35, 40, 50, 75, 100, 125)
+
 accPerNTrees <- data.frame(ntree=numeric(length(nTreeList)), 
                            accTrain=numeric(length(nTreeList)), 
                            accVal=numeric(length(nTreeList)))
@@ -543,7 +561,13 @@ for (i in 1:length(nTreeList)){
 accPerNTrees <- melt(accPerNTrees, id="ntree")  # convert to long format
 ggplot(data=accPerNTrees, aes(x=ntree, y=value, colour=variable)) + geom_line() + geom_point()
 
-bestNTree <- 20
+bestNTree <- 21
+
+
+accPerNTrees[accPerNTrees$ntree == bestNTree,]
+max(accPerNTrees[accPerNTrees$variable == "accVal",]$value)
+
+
 
 #TODO: aplicar no conjunto de teste
 
@@ -625,3 +649,5 @@ bestNTree <- 20
 
 #temporary_test <- rbind(train_val_set[1,], test_set) # Descomentar
 #test_set <- temporary_test[-1,] # Descomentar
+
+max(accPerNTrees[accPerNTrees$variable == "accVal",]$value)
