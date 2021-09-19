@@ -3,9 +3,9 @@ title: INF0613 -- Aprendizado de Máquina Não Supervisionado
 output: pdf_document
 subtitle: Trabalho 3 - Técnicas de Agrupamento
 author: 
-  - Nome completo Integrante 1
-  - Nome completo Integrante 2
-  - Nome completo Integrante 3
+  - Evandro Santos Rocha
+  - Laíssa Pacheco de Oliveira
+  - Rafael Dantas de Moura
 ---
 
 
@@ -22,7 +22,7 @@ Antes de começar a implementação do seu trabalho configure o _workspace_ e im
 
 ```{r atv0-code}
 # Adicione os pacotes usados neste trabalho:
-
+library(datasets)
 
 # Configure ambiente de trabalho na mesma pasta 
 # onde colocou a base de dados:
@@ -43,9 +43,28 @@ a) *Tratamento de dados Incompletos:* Amostras incompletas deverão ser tratadas
 
 ```{r atv1a-code}
 # Leitura da base
+carros <- read.table(file.choose(), sep=",")
+summary(carros)
 
 # Tratamento de dados faltantes
+any(is.na(carros)) # verifica se há algum valor NA no conjunto de dados
+# FALSE
 
+# Encontrando valores iguais a "?" e substituindo
+carros$V2[which(carros$V2 == "?")] <- NA
+carros$V19[which(carros$V19 == "?")] <- NA
+carros$V20[which(carros$V20 == "?")] <- NA
+carros$V22[which(carros$V22 == "?")] <- NA
+carros$V23[which(carros$V23 == "?")] <- NA
+carros$V25[which(carros$V25 == "?")] <- NA
+
+# Conversão do tipo dos atributos
+as.numeric(carros$V2)
+as.numeric(carros$V19)
+
+summary(carros)
+
+# DUVIDA: porque o summary ainda está retornando essas colunas como character? Ele não deveria ignorar os NAs e calcular os valores??
 ```
 
 b) *Seleção de Atributos:* Atributos não-numéricos não podem ser usados com as técnicas  agrupamento vistas em aula. Portanto, você deve selecionar um conjunto de atributos numéricos que serão usados para o agrupamento. Além disso você deve analisar se os atributos não-numéricos são descritivos para a realização dos agrupamentos. Caso um dos atributos não numéricos seja necessário, use a técnica do  *one hot encoding* para transformá-lo em numérico. **Não** aplique essa técnica nos atributos `symboling` e `make` para os agrupamentos subsequentes, eles não devem fazer parte do agrupamento. 
@@ -62,6 +81,14 @@ Após as implementações escreva uma análise da base de dados. Em especial, de
 
 
 **Resposta:** <!-- Escreva sua resposta abaixo -->
+O conjunto de dados é composto por 205 objetos e 26 atributos referentes a diferentes carros e suas características. Como informado na Tabela 1 do enunciado do exercício, o primeiro atributo (que é do tipo inteiro) refere-se ao risco calculado associado à cada carro, e seu valor pode variar entre -3 (menor risco) e 3 (maior risco).
+
+Primeiramente, observamos os dados de forma resumida, através da função `summary`. Notamos que alguns atributos tem o tipo divergente daqueles indicados na Tabela 1, que descreve o conjunto de dados; como é o caso dos atributos V2, V19, V20, V22, V23, e V25. Na descrição, todos estão indicados como numéricos, mas a função summary retornou este como sendo do tipo _character_, indicando que deve haver valores não numéricos que alteraram inteiramente o tipo do atributo.
+
+Para corrigir esses valores incorretos, primeiro fizemos a conferência se havia algum valor "NA", o que nos retornou _false_. Olhando o conjunto de dados, nos atributos mencionados assim, notamos que apesar de não haver valores vazios ou "NA", havia, porém, valores iguais a "?", explicando porque alguns atributos numéricos estavam sendo tratados como caracteres. Para facilitar a manipulação, todos esses valores foram convertidos para NA, pois assim, pela função `summary`, poderemos obter o valor médio dos atributos e atribuir este valor para as observações faltantes.
+
+Porém, como mesmo após a conversão dos valores o tipo dos atributos permaneceu igual, tivemos que forçar a mudança do do tipo para então obter o valor médio.
+
 
 
 <!-- Fim da resposta -->
