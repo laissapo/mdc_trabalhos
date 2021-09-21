@@ -43,12 +43,23 @@ a) *Tratamento de dados Incompletos:* Amostras incompletas deverão ser tratadas
 
 ```{r atv1a-code}
 # Leitura da base
-carros <- read.table(file.choose(), sep=",")
+#carros <- read.table(file.choose(), sep=",")
+carros <- read.table("imports-85.data", sep=",")
 summary(carros)
+dim(carros)
 
 # Tratamento de dados faltantes
 any(is.na(carros)) # verifica se há algum valor NA no conjunto de dados
 # FALSE
+
+# Verificando quais são os valore não numéricos de cada campo 
+# que deveria vir como numérico no summary
+carros[is.na(as.numeric(carros$V2)),]$V2      # duvida: possui 41 valores iguais "?" ---> retirar a feature
+carros[is.na(as.numeric(carros$V19)),]$V19
+carros[is.na(as.numeric(carros$V20)),]$V20
+carros[is.na(as.numeric(carros$V22)),]$V22
+carros[is.na(as.numeric(carros$V23)),]$V23
+carros[is.na(as.numeric(carros$V26)),]$V26
 
 # Encontrando valores iguais a "?" e substituindo
 carros$V2[which(carros$V2 == "?")] <- NA
@@ -56,21 +67,142 @@ carros$V19[which(carros$V19 == "?")] <- NA
 carros$V20[which(carros$V20 == "?")] <- NA
 carros$V22[which(carros$V22 == "?")] <- NA
 carros$V23[which(carros$V23 == "?")] <- NA
-carros$V25[which(carros$V25 == "?")] <- NA
+carros$V26[which(carros$V26 == "?")] <- NA
 
 # Conversão do tipo dos atributos
-as.numeric(carros$V2)
-as.numeric(carros$V19)
+carros$V2 <- as.numeric(carros$V2)
+carros$V19 <- as.numeric(carros$V19)
+carros$V20 <- as.numeric(carros$V20)
+carros$V22 <- as.numeric(carros$V22)
+carros$V23 <- as.numeric(carros$V23)
+carros$V26 <- as.numeric(carros$V26)
 
+#TODO: talvez colocar a media para os valores que estao como NA
+#V2_mean <- mean(carros[!is.na(carros$V2), ]$V2)
+carros$V2 <- NULL
+carros <- carros[!is.na(carros$V19), ]
+carros <- carros[!is.na(carros$V20), ]
+carros <- carros[!is.na(carros$V22), ]
+carros <- carros[!is.na(carros$V23), ]
+carros <- carros[!is.na(carros$V26), ]
+any(is.na(carros))
+
+# Checando o summary novamente
 summary(carros)
+dim(carros)
 
-# DUVIDA: porque o summary ainda está retornando essas colunas como character? Ele não deveria ignorar os NAs e calcular os valores??
+
 ```
 
 b) *Seleção de Atributos:* Atributos não-numéricos não podem ser usados com as técnicas  agrupamento vistas em aula. Portanto, você deve selecionar um conjunto de atributos numéricos que serão usados para o agrupamento. Além disso você deve analisar se os atributos não-numéricos são descritivos para a realização dos agrupamentos. Caso um dos atributos não numéricos seja necessário, use a técnica do  *one hot encoding* para transformá-lo em numérico. **Não** aplique essa técnica nos atributos `symboling` e `make` para os agrupamentos subsequentes, eles não devem fazer parte do agrupamento. 
 
 ```{r atv1b-code}
 # Seleção de atributos
+
+#fuel-type
+unique(carros$V4)
+#[1] "gas"    "diesel"
+carros$V4_gas    <- as.numeric(carros$V4 == "gas")
+carros$V4_diesel <- as.numeric(carros$V4 == "diesel")
+carros$V4 <- NULL
+
+#aspiration
+unique(carros$V5)
+#[1] "std"   "turbo"
+carros$V5_std   <- as.numeric(carros$V5 == "std")
+carros$V5_turbo <- as.numeric(carros$V5 == "turbo")
+carros$V5 <- NULL
+
+#num-of-doors
+unique(carros$V6)
+#[1] "two"  "four" "?"
+carros$V6_two  <- as.numeric(carros$V6 == "two")
+carros$V6_four <- as.numeric(carros$V6 == "four")
+carros$V6 <- NULL
+
+#body-style
+unique(carros$V7)
+#[1] "convertible" "hatchback"   "sedan"       "wagon"       "hardtop"
+carros$V7_convertible <- as.numeric(carros$V7 == "convertible")
+carros$V7_hatchback   <- as.numeric(carros$V7 == "hatchback")
+carros$V7_sedan       <- as.numeric(carros$V7 == "sedan")
+carros$V7_wagon       <- as.numeric(carros$V7 == "wagon")
+carros$V7_hardtop     <- as.numeric(carros$V7 == "hardtop")
+carros$V7 <- NULL
+
+#drive-wheels
+unique(carros$V8)
+#[1] "rwd" "fwd" "4wd"
+carros$V8_rwd <- as.numeric(carros$V8 == "rwd")
+carros$V8_fwd <- as.numeric(carros$V8 == "fwd")
+carros$V8_4wd <- as.numeric(carros$V8 == "4wd")
+carros$V8 <- NULL
+
+#engine-location
+unique(carros$V9)
+#[1] "front" "rear"
+carros$V9_front <- as.numeric(carros$V9 == "front")
+carros$V9_rear  <- as.numeric(carros$V9 == "rear")
+carros$V9 <- NULL
+
+#engine-type
+unique(carros$V15)
+#[1] "dohc"  "ohcv"  "ohc"   "l"     "rotor" "ohcf"  "dohcv"
+carros$V15_dohc  <- as.numeric(carros$V15 == "dohc")
+carros$V15_ohcv  <- as.numeric(carros$V15 == "ohcv")
+carros$V15_ohc   <- as.numeric(carros$V15 == "ohc")
+carros$V15_l     <- as.numeric(carros$V15 == "l")
+carros$V15_rotor <- as.numeric(carros$V15 == "rotor")
+carros$V15_ohcf  <- as.numeric(carros$V15 == "ohcf")
+carros$V15_dohcv <- as.numeric(carros$V15 == "dohcv")
+carros$V15 <- NULL
+
+#num-of-cylinders
+unique(carros$V16)
+#[1] "four"   "six"    "five"   "three"  "twelve" "two"    "eight"
+carros$V16_four   <- as.numeric(carros$V16 == "four")
+carros$V16_six    <- as.numeric(carros$V16 == "six")
+carros$V16_five   <- as.numeric(carros$V16 == "five")
+carros$V16_three  <- as.numeric(carros$V16 == "three")
+carros$V16_twelve <- as.numeric(carros$V16 == "twelve")
+carros$V16_two    <- as.numeric(carros$V16 == "two")
+carros$V16_eight  <- as.numeric(carros$V16 == "eight")
+carros$V16 <- NULL
+
+#fuel-system
+unique(carros$V18)
+#[1] "mpfi" "2bbl" "mfi"  "1bbl" "spfi" "4bbl" "idi"  "spdi"
+carros$V18_mpfi <- as.numeric(carros$V18 == "mpfi")
+carros$V18_2bbl <- as.numeric(carros$V18 == "2bbl")
+carros$V18_mfi  <- as.numeric(carros$V18 == "mfi")
+carros$V18_1bbl <- as.numeric(carros$V18 == "1bbl")
+carros$V18_spfi <- as.numeric(carros$V18 == "spfi")
+carros$V18_4bbl <- as.numeric(carros$V18 == "4bbl")
+carros$V18_idi  <- as.numeric(carros$V18 == "idi")
+carros$V18_spdi <- as.numeric(carros$V18 == "spdi")
+carros$V18 <- NULL
+
+#TODO: Agora vem a seleção dos atributos
+#library ( mlbench )
+#library ( caret )
+#matriz_corr <- cor(carros[,4:length(carros)])
+#print ( matriz_corr )
+#altamente_corr <- findCorrelation (matriz_corr, cutoff = 0.5)
+
+#summary(carros)
+#carros[,4:length(carros)]
+
+
+library ( mlbench )
+library ( caret )
+library ( randomForest )
+set.seed (7)
+
+controle <- rfeControl ( functions = rfFuncs , method ="cv", number=10)
+
+resultados <- rfe( carros[,4:length(carros)] , carros[,1] , sizes =c (4:length(carros)) , rfeControl = controle )
+print ( resultados )
+predictors ( resultados )
 
 
 ```
@@ -87,8 +219,7 @@ Primeiramente, observamos os dados de forma resumida, através da função `summ
 
 Para corrigir esses valores incorretos, primeiro fizemos a conferência se havia algum valor "NA", o que nos retornou _false_. Olhando o conjunto de dados, nos atributos mencionados assim, notamos que apesar de não haver valores vazios ou "NA", havia, porém, valores iguais a "?", explicando porque alguns atributos numéricos estavam sendo tratados como caracteres. Para facilitar a manipulação, todos esses valores foram convertidos para NA, pois assim, pela função `summary`, poderemos obter o valor médio dos atributos e atribuir este valor para as observações faltantes.
 
-Porém, como mesmo após a conversão dos valores o tipo dos atributos permaneceu igual, tivemos que forçar a mudança do do tipo para então obter o valor médio.
-
+Para fazer a seleção dos atributos, primeiro buscamos identificar aqueles em que havia muitos valores faltantes, pois esta variável pouco contribuiria para a análise. O atributo V2, por exemplo, apresenta 41 valores NAs (20% do total de observações), e por isso decidimos eliminá-lo. Em seguida, verificamos quantas observações possuiam NAs em qualquer um dos campos, o que nos levou a um total de 10 observações. Como essa quantia é pequena, em relação ao total    (4,78%), decidimos eliminar tais observações para então passar para a etapa seguinte, de identificação dos atributos redundantes. Para isso, utilizamos a técnica
 
 
 <!-- Fim da resposta -->
