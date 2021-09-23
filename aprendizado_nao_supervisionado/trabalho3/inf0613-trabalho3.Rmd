@@ -251,7 +251,11 @@ Para corrigir esses valores incorretos, primeiro fizemos a conferência se havia
 
 Outro tratamento importante é a verificação de amostras duplicadas. Aplicamos a função `unique`, cuja finalidade é identificar apenas as amostras com valores únicos (ou seja, não repetidos) no conjunto de dados. Não foram identificados nenhuma amostra duplicada e por este motivo mantivemos o conjunto de dados inicial.
 
-Para fazer a seleção dos atributos, primeiro buscamos identificar aqueles em que havia muitos valores faltantes, pois esta variável pouco contribuiria para a análise. O atributo V2, por exemplo, apresenta 41 valores NAs (20% do total de observações), e por isso decidimos eliminá-lo. Em seguida, verificamos quantas observações possuiam NAs em qualquer um dos campos, o que nos levou a um total de 10 observações. Como essa quantia é pequena, em relação ao total    (4,78%), decidimos eliminar tais observações para então passar para a etapa seguinte, de identificação dos atributos redundantes. Para isso, utilizamos o cálculo da matriz de correlação...
+Para fazer a seleção dos atributos, primeiro buscamos identificar aqueles em que havia muitos valores faltantes, pois esta variável pouco contribuiria para a análise. O atributo V2, por exemplo, apresenta 41 valores NAs (20% do total de observações), e por isso decidimos eliminá-lo. Em seguida, verificamos quantas observações possuiam NAs em qualquer um dos campos, o que nos levou a um total de 10 observações. Como essa quantia é pequena, em relação ao total (4,78%), decidimos substituir esses valores pelas respectivas médias dos atributos.
+
+A etapa seguinte de seleção dos atributos consistia na identificação e remoção dos atributos redundantes, visto que isso permite reduzir a dimensionalidade do conjunto de dados e economizar processamento. Primeiramente transformamos todas as variáveis categóricas em variáveis numéricas pelo método one hot enconding, o que permitiu a utilização das mesmas no cálculo da matriz de correlação. A matriz de correlação tem o objetivo de identificar quais dos atributos são mais ou menos correlacionados com os demais, sendo, portanto, uma boa medida da redundância. Decidimos retirar do nosso conjunto de dados todos os atributos cuja correlação seja de no mínimo 50% em relação a um ou mais dos outros atributos.
+
+Esse corte permitiu que o número de atributos do nosso conjunto de dados fosse reduzido de 54 para 29.
 
 
 <!-- Fim da resposta -->
