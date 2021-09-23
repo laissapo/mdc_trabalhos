@@ -235,6 +235,16 @@ dim(carros)
 #[1] 205  29
 
 
+# Verificando se agora, depois de reduzir as dimensões, existem exemplos repetidos
+dim(unique(carros))
+#[1] 150  29
+# RESULTADO: EXISTEM EXEMPLOS REPETIDOS
+
+
+# Desconsiderando exemplos repetidos
+carros <- unique(carros)
+
+
 ```
 
 ## Análises
@@ -269,12 +279,14 @@ a) *Gráfico \textsl{Elbow Curve}:* Construa um gráfico com a soma das distânc
 # Construindo um gráfico com as distâncias intra-cluster
 
 
+
 ```
 
 b) *Gráfico da Silhueta:* Construa um gráfico com o valor da silhueta para $K$ variando de $2$ a $30$.
 
 ```{r atv2b-code}
 # Construindo um gráfico com os valores da silhueta
+
 
 
 ```
