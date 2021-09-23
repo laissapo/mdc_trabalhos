@@ -322,8 +322,6 @@ treeModel <- rpart(formula=label ~ age + sex + country + latitude + longitude +
                                          maxdepth = bestMaxdepth),
                    parms= list(split="information"))
 
-#TODO: por que a feature chronic_disease_binary não foi reportada? Ela apareceu poucas vezes como "true", mas a maioria está com a classe "dead"
-
 ### Verificando a importância de cada feature ###
 importance_per_feature <- treeModel$variable.importance
 relative_importance <- importance_per_feature/sum(importance_per_feature)
@@ -392,10 +390,9 @@ cm_relative
 #              Prediction
 #Reference      dead onTreatment recovered
 #dead        1.00        0.00      0.00
-#onTreatment 0.00        0.83      0.17
-#recovered   0.00        0.40      0.60
+#onTreatment 0.00        0.91      0.09
+#recovered   0.00        0.50      0.50
 
-#TODO: é assim que calcula a acurácia balanceada com 3 classes?
 acc_bal <- (cm_relative[1,1] + cm_relative[2,2]+ cm_relative[3,3])/3
 acc_bal
 #[1] 0.8033333
@@ -413,11 +410,10 @@ cm_relative
 
 #              Prediction
 #Reference      dead onTreatment recovered
-#dead        1.00        0.00      0.00
-#onTreatment 0.00        0.83      0.17
-#recovered   0.00        0.40      0.60
+#dead        0.99        0.00      0.01
+#onTreatment 0.00        0.91      0.09
+#recovered   0.00        0.50      0.50
 
-#TODO: é assim que calcula a acurácia balanceada com 3 classes?
 acc_bal <- (cm_relative[1,1] + cm_relative[2,2]+ cm_relative[3,3])/3
 acc_bal
 #[1] 0.8
@@ -435,11 +431,10 @@ cm_relative
 
 #              Prediction
 #Reference      dead onTreatment recovered
-#dead        1.00        0.00      0.00
-#onTreatment 0.00        0.74      0.26
-#recovered   0.00        0.02      0.98
+#dead        0.99        0.00      0.00
+#onTreatment 0.00        0.73      0.27
+#recovered   0.00        0.01      0.98
 
-#TODO: é assim que calcula a acurácia balanceada com 3 classes?
 acc_bal <- (cm_relative[1,1] + cm_relative[2,2]+ cm_relative[3,3])/3
 acc_bal
 #[1] 0.9
@@ -495,8 +490,8 @@ cm_relative
 #               Prediction
 #Reference      dead onTreatment recovered
 #dead        1.00        0.00      0.00
-#onTreatment 0.00        0.74      0.26
-#recovered   0.00        0.01      0.99
+#onTreatment 0.00        0.76      0.24
+#recovered   0.00        0.03      0.97
 
 acc_bal <- (cm_relative[1,1] + cm_relative[2,2] + cm_relative[3,3])/3
 acc_bal
@@ -505,17 +500,22 @@ acc_bal
 
 # Vamos verificar agora como as acurácias de treinamento e de validação
 # variam com o número de árvores na floresta aleatória
-nTreeList = c(1, 5, 10, 25, 50, 75, 100, 150, 200, 250, 500)
-nTreeList = c(1, 5, 10, 25, 50, 100, 250, 500) #, 1000)
-nTreeList = c(1, 2, 3, 5, 8, 10, 15, 20, 25, 50, 100, 150) #, 1000)
+#nTreeList = c(1, 5, 10, 25, 50, 75, 100, 150, 200, 250, 500)
+#nTreeList = c(1, 5, 10, 25, 50, 100, 250, 500) #, 1000)
+#nTreeList = c(1, 2, 3, 5, 8, 10, 15, 20, 25, 50, 100, 150) #, 1000)
+
+# legal para ver mais longe, mas nao mostra o ponto/região ótimo
+nTreeList = c(1, 2, 3, 5, 8, 10, 11:25, 30, 35, 40, 50, 100, 150, 200, 500)
+nTreeList = c(1, 2, 3, 5, 8, 10, 11:25, 30, 35, 40, 50, 75, 100, 125)
+nTreeList = c(1, 2, 3, 5, 8, 10, 11:25, 30, 35, 40, 50, 60, 70, 80)
+nTreeList = c(1, 2, 3, 5, 8, 10, 11:25, 30, 35, 40, 50, 75, 100, 125, 150, 175, 200)
 
 # legal para mostrar no gráfico
-nTreeList = c(1, 2, 3, 5, 8, 10, 11:25, 30, 35, 40) 
+nTreeList = c(1, 2, 3, 5, 8, 10, 11:25, 30, 35, 40)
 
-# legal para mostrar mais, mas nao mostra o ponto/região ótimo
-nTreeList = c(1, 2, 3, 5, 8, 10, 11:25, 30, 35, 40, 50, 100, 150, 200, 500) 
-nTreeList = c(1, 2, 3, 5, 8, 10, 11:25, 30, 35, 40, 50, 75, 100, 125, 200, 300, 500) 
-nTreeList = c(1, 2, 3, 5, 8, 10, 11:25, 30, 35, 40, 50, 75, 100, 125)
+#definitivo
+nTreeList = c(1, 5, 10:25, 30, 40, 50, 75, 100, 150, 200, 250)
+
 
 accPerNTrees <- data.frame(ntree=numeric(length(nTreeList)), 
                            accTrain=numeric(length(nTreeList)), 
@@ -524,8 +524,7 @@ accPerNTrees <- data.frame(ntree=numeric(length(nTreeList)),
 for (i in 1:length(nTreeList)){
     
     cat("i: ", i, "\t ntree: ", nTreeList[i])
-    
-    
+
     rfModel <- randomForest(formula=label ~ age + sex + country + latitude + longitude + 
                                 date_onset_symptoms + date_admission_hospital + 
                                 date_confirmation + lives_in_Wuhan + travel_history_dates + 
@@ -561,7 +560,8 @@ for (i in 1:length(nTreeList)){
 accPerNTrees <- melt(accPerNTrees, id="ntree")  # convert to long format
 ggplot(data=accPerNTrees, aes(x=ntree, y=value, colour=variable)) + geom_line() + geom_point()
 
-bestNTree <- 21
+#bestNTree <- 21
+bestNTree <- 30
 
 
 accPerNTrees[accPerNTrees$ntree == bestNTree,]
