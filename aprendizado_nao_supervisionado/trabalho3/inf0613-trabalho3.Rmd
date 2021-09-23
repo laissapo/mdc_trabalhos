@@ -24,6 +24,9 @@ Antes de começar a implementação do seu trabalho configure o _workspace_ e im
 # Adicione os pacotes usados neste trabalho:
 library(datasets)
 
+library ( mlbench )
+library ( caret )
+
 # Configure ambiente de trabalho na mesma pasta 
 # onde colocou a base de dados:
 # setwd("")
@@ -47,21 +50,22 @@ a) *Tratamento de dados Incompletos:* Amostras incompletas deverão ser tratadas
 carros <- read.table("imports-85.data", sep=",")
 summary(carros)
 dim(carros)
+#[1] 205  26
 
 # Tratamento de dados faltantes
 any(is.na(carros)) # verifica se há algum valor NA no conjunto de dados
 # FALSE
 
-# Verificando quais são os valore não numéricos de cada campo 
-# que deveria vir como numérico no summary
-carros[is.na(as.numeric(carros$V2)),]$V2      # duvida: possui 41 valores iguais "?" ---> retirar a feature
+# Verificando quais são os valores não numéricos de cada campo 
+# que deveria vir como numérico no summary (de acordo com o enunciado)
+carros[is.na(as.numeric(carros$V2)),]$V2      # possui 41 valores iguais "?" ---> retirar a feature
 carros[is.na(as.numeric(carros$V19)),]$V19
 carros[is.na(as.numeric(carros$V20)),]$V20
 carros[is.na(as.numeric(carros$V22)),]$V22
 carros[is.na(as.numeric(carros$V23)),]$V23
 carros[is.na(as.numeric(carros$V26)),]$V26
 
-# Encontrando valores iguais a "?" e substituindo
+# Encontrando valores iguais a "?" e substituindo por NA
 carros$V2[which(carros$V2 == "?")] <- NA
 carros$V19[which(carros$V19 == "?")] <- NA
 carros$V20[which(carros$V20 == "?")] <- NA
@@ -77,20 +81,26 @@ carros$V22 <- as.numeric(carros$V22)
 carros$V23 <- as.numeric(carros$V23)
 carros$V26 <- as.numeric(carros$V26)
 
-#TODO: talvez colocar a media para os valores que estao como NA
-#V2_mean <- mean(carros[!is.na(carros$V2), ]$V2)
+# Verificando se todos os campos numéricos estão ok
+summary(carros)
+
+# Atributo V2 possui muitos NAs, então resolvemos retirá-lo
 carros$V2 <- NULL
-carros <- carros[!is.na(carros$V19), ]
-carros <- carros[!is.na(carros$V20), ]
-carros <- carros[!is.na(carros$V22), ]
-carros <- carros[!is.na(carros$V23), ]
-carros <- carros[!is.na(carros$V26), ]
+
+# Tratamento de NA: será atribuída a média
+carros$V19[is.na(carros$V19)] <- mean(carros$V19, na.rm = TRUE)
+carros$V20[is.na(carros$V20)] <- mean(carros$V20, na.rm = TRUE)
+carros$V22[is.na(carros$V22)] <- mean(carros$V22, na.rm = TRUE)
+carros$V23[is.na(carros$V23)] <- mean(carros$V23, na.rm = TRUE)
+carros$V26[is.na(carros$V26)] <- mean(carros$V26, na.rm = TRUE)
+
+# Verificando se sobraram NAs
 any(is.na(carros))
 
 # Checando o summary novamente
 summary(carros)
 dim(carros)
-
+#[1] 205  25
 
 ```
 
@@ -115,9 +125,12 @@ carros$V5 <- NULL
 
 #num-of-doors
 unique(carros$V6)
+#table(carros$V6)
+#   ? four  two 
+#   2  114   89
 #[1] "two"  "four" "?"
 carros$V6_two  <- as.numeric(carros$V6 == "two")
-carros$V6_four <- as.numeric(carros$V6 == "four")
+carros$V6_four <- as.numeric(carros$V6 == "four" | carros$V6 == "?")
 carros$V6 <- NULL
 
 #body-style
@@ -182,27 +195,44 @@ carros$V18_idi  <- as.numeric(carros$V18 == "idi")
 carros$V18_spdi <- as.numeric(carros$V18 == "spdi")
 carros$V18 <- NULL
 
-#TODO: Agora vem a seleção dos atributos
-#library ( mlbench )
-#library ( caret )
-#matriz_corr <- cor(carros[,4:length(carros)])
-#print ( matriz_corr )
-#altamente_corr <- findCorrelation (matriz_corr, cutoff = 0.5)
 
-#summary(carros)
-#carros[,4:length(carros)]
+# Verificação de duplicados
+dim(carros)
+#[1] 205  54
+dim(unique(carros))
+#[1] 205  54
+# RESULTADO: não há observações duplicadas
 
 
-library ( mlbench )
-library ( caret )
-library ( randomForest )
-set.seed (7)
 
-controle <- rfeControl ( functions = rfFuncs , method ="cv", number=10)
+carros_atributos <- carros[,3:length(carros)] 
 
-resultados <- rfe( carros[,4:length(carros)] , carros[,1] , sizes =c (4:length(carros)) , rfeControl = controle )
-print ( resultados )
-predictors ( resultados )
+#Agora vem a seleção dos atributos
+matriz_corr <- cor(carros_atributos)
+#print(matriz_corr)
+
+altamente_corr <- findCorrelation(matriz_corr, cutoff = 0.5)
+print(altamente_corr)
+#[1]  5  2 10  3  1 13  6 12 14 26 27 45 38 15 16 51  4 22 19 20 17 29  8 35 50
+
+# atributos que estão altamente correlacionados e que podem ser excluídos
+names(carros_atributos[altamente_corr])
+# [1] "V14"          "V11"          "V22"          "V12"          "V10"          "V25"         
+# [7] "V17"          "V24"          "V26"          "V8_rwd"       "V8_fwd"       "V18_mpfi"    
+#[13] "V16_four"     "V4_gas"       "V4_diesel"    "V18_idi"      "V13"          "V7_hatchback"
+#[19] "V6_two"       "V6_four"      "V5_std"       "V9_front"     "V20"          "V15_rotor"   
+#[25] "V18_4bbl"
+
+dim(carros)
+#[1] 205  54
+
+#Conjunto de atributos
+#setdiff(names(carros), names(carros_atributos[altamente_corr]))
+
+carros <- carros[, setdiff(names(carros), names(carros_atributos[altamente_corr]))]
+
+dim(carros)
+#[1] 205  29
 
 
 ```
@@ -219,7 +249,9 @@ Primeiramente, observamos os dados de forma resumida, através da função `summ
 
 Para corrigir esses valores incorretos, primeiro fizemos a conferência se havia algum valor "NA", o que nos retornou _false_. Olhando o conjunto de dados, nos atributos mencionados assim, notamos que apesar de não haver valores vazios ou "NA", havia, porém, valores iguais a "?", explicando porque alguns atributos numéricos estavam sendo tratados como caracteres. Para facilitar a manipulação, todos esses valores foram convertidos para NA, pois assim, pela função `summary`, poderemos obter o valor médio dos atributos e atribuir este valor para as observações faltantes.
 
-Para fazer a seleção dos atributos, primeiro buscamos identificar aqueles em que havia muitos valores faltantes, pois esta variável pouco contribuiria para a análise. O atributo V2, por exemplo, apresenta 41 valores NAs (20% do total de observações), e por isso decidimos eliminá-lo. Em seguida, verificamos quantas observações possuiam NAs em qualquer um dos campos, o que nos levou a um total de 10 observações. Como essa quantia é pequena, em relação ao total    (4,78%), decidimos eliminar tais observações para então passar para a etapa seguinte, de identificação dos atributos redundantes. Para isso, utilizamos a técnica
+Outro tratamento importante é a verificação de amostras duplicadas. Aplicamos a função `unique`, cuja finalidade é identificar apenas as amostras com valores únicos (ou seja, não repetidos) no conjunto de dados. Não foram identificados nenhuma amostra duplicada e por este motivo mantivemos o conjunto de dados inicial.
+
+Para fazer a seleção dos atributos, primeiro buscamos identificar aqueles em que havia muitos valores faltantes, pois esta variável pouco contribuiria para a análise. O atributo V2, por exemplo, apresenta 41 valores NAs (20% do total de observações), e por isso decidimos eliminá-lo. Em seguida, verificamos quantas observações possuiam NAs em qualquer um dos campos, o que nos levou a um total de 10 observações. Como essa quantia é pequena, em relação ao total    (4,78%), decidimos eliminar tais observações para então passar para a etapa seguinte, de identificação dos atributos redundantes. Para isso, utilizamos o cálculo da matriz de correlação...
 
 
 <!-- Fim da resposta -->
