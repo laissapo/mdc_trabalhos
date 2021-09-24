@@ -206,6 +206,27 @@ treeModel <- rpart(formula=label ~ age + sex + country + latitude + longitude +
 
 summary(treeModel)
 
+######### Avaliação no conjunto de Treinamento ##########
+
+# Vamos ver a performance no conjunto de treinamento
+val_train <- predict(treeModel, dataTrain, type="class")
+cm <- confusionMatrix(data = as.factor(val_train), 
+                      reference = as.factor(dataTrain$label), 
+                      positive='yes')
+
+cm_relative <- calculaMatrizConfusaoRelativa(cm)
+cm_relative
+
+#              Prediction
+#Reference      dead onTreatment recovered
+#dead        1.00        0.00      0.00
+#onTreatment 0.00        0.98      0.02
+#recovered   0.00        0.02      0.98
+
+acc_bal <- (cm_relative[1,1] + cm_relative[2,2]+ cm_relative[3,3])/3
+acc_bal
+#[1] 0.9866667
+
 ######### Avaliação no conjunto de Validação ##########
 
 # Vamos ver a performance no conjunto de validação
@@ -227,6 +248,7 @@ acc_bal <- (cm_relative[1,1] + cm_relative[2,2]+ cm_relative[3,3])/3
 acc_bal
 #[1] 0.8666667
 
+######### TODO: Avaliação no conjunto de Teste ##########
 
 
 ###############################################################################
@@ -249,7 +271,7 @@ number_of_depths = 15
 accPerDepth <- data.frame(depth=numeric(number_of_depths), 
                           accTrain=numeric(number_of_depths), 
                           accVal=numeric(number_of_depths))
-summary(accPerDepth)
+#summary(accPerDepth)
 for (maxDepth in 1:number_of_depths){
     treeModel <- rpart(formula=label ~ age + sex + country + latitude + longitude + 
                            date_onset_symptoms + date_admission_hospital + 
@@ -327,14 +349,14 @@ importance_per_feature <- treeModel$variable.importance
 relative_importance <- importance_per_feature/sum(importance_per_feature)
 relative_importance
 
-#date_death_or_discharge date_admission_hospital                 country    travel_history_dates 
-#0.210065921             0.172110982             0.136710490             0.131942896 
-#longitude          lives_in_Wuhan                     age       date_confirmation 
-#0.131503242             0.119467822             0.030831058             0.028802451 
-#sex travel_history_location                latitude   travel_history_binary 
-#0.022846366             0.005514022             0.004957255             0.003309809 
-#date_onset_symptoms 
-#0.001937687
+#date_death_or_discharge date_admission_hospital    country         travel_history_dates       longitude 
+#0.210065921             0.172110982                0.136710490     0.131942896             0.131503242 
+#
+#lives_in_Wuhan                 age       date_confirmation                 sex             travel_history_location 
+#0.119467822             0.030831058             0.028802451             0.022846366         0.005514022 
+#
+#latitude   travel_history_binary     date_onset_symptoms 
+#0.004957255             0.003309809             0.001937687
 
 
 # Primeiro subconjunto: features que têm grande importância relativa (maior que 10%)
@@ -464,7 +486,7 @@ rfModel <- randomForest(formula=label ~ age + sex + country + latitude + longitu
                             date_confirmation + lives_in_Wuhan + travel_history_dates + 
                             travel_history_location + chronic_disease_binary +
                             date_death_or_discharge + travel_history_binary, 
-                        data= dataTrain, ntree=100, mtry=7)
+                        data= dataTrain, ntree=100, mtry=4)
 
 # Plotando o erro para cada classe a para OOB. Para saber
 # o significado e explicacao do OOB veja o exercicio 07 
@@ -490,12 +512,12 @@ cm_relative
 #               Prediction
 #Reference      dead onTreatment recovered
 #dead        1.00        0.00      0.00
-#onTreatment 0.00        0.76      0.24
-#recovered   0.00        0.03      0.97
+#onTreatment 0.00        0.74      0.26
+#recovered   0.00        0.02      0.98
 
 acc_bal <- (cm_relative[1,1] + cm_relative[2,2] + cm_relative[3,3])/3
 acc_bal
-#[1] 0.91
+#[1] 0.9066667
 
 
 # Vamos verificar agora como as acurácias de treinamento e de validação
@@ -505,16 +527,16 @@ acc_bal
 #nTreeList = c(1, 2, 3, 5, 8, 10, 15, 20, 25, 50, 100, 150) #, 1000)
 
 # legal para ver mais longe, mas nao mostra o ponto/região ótimo
-nTreeList = c(1, 2, 3, 5, 8, 10, 11:25, 30, 35, 40, 50, 100, 150, 200, 500)
-nTreeList = c(1, 2, 3, 5, 8, 10, 11:25, 30, 35, 40, 50, 75, 100, 125)
-nTreeList = c(1, 2, 3, 5, 8, 10, 11:25, 30, 35, 40, 50, 60, 70, 80)
+#nTreeList = c(1, 2, 3, 5, 8, 10, 11:25, 30, 35, 40, 50, 100, 150, 200, 500)
+#nTreeList = c(1, 2, 3, 5, 8, 10, 11:25, 30, 35, 40, 50, 75, 100, 125)
+#nTreeList = c(1, 2, 3, 5, 8, 10, 11:25, 30, 35, 40, 50, 60, 70, 80)
 nTreeList = c(1, 2, 3, 5, 8, 10, 11:25, 30, 35, 40, 50, 75, 100, 125, 150, 175, 200)
 
 # legal para mostrar no gráfico
-nTreeList = c(1, 2, 3, 5, 8, 10, 11:25, 30, 35, 40)
+#nTreeList = c(1, 2, 3, 5, 8, 10, 11:25, 30, 35, 40, 50)
 
 #definitivo
-nTreeList = c(1, 5, 10:25, 30, 40, 50, 75, 100, 150, 200, 250)
+#nTreeList = c(1, 5, 10:25, 30, 40, 50, 75, 100, 150, 200, 250)
 
 
 accPerNTrees <- data.frame(ntree=numeric(length(nTreeList)), 
@@ -530,7 +552,7 @@ for (i in 1:length(nTreeList)){
                                 date_confirmation + lives_in_Wuhan + travel_history_dates + 
                                 travel_history_location + chronic_disease_binary +
                                 date_death_or_discharge + travel_history_binary, 
-                            data= dataTrain, ntree=nTreeList[i], mtry=7)
+                            data= dataTrain, ntree=nTreeList[i], mtry=4)
     
     # Avaliando no conjunto de treino
     train_pred <- predict(rfModel, dataTrain, type="class")
@@ -561,7 +583,7 @@ accPerNTrees <- melt(accPerNTrees, id="ntree")  # convert to long format
 ggplot(data=accPerNTrees, aes(x=ntree, y=value, colour=variable)) + geom_line() + geom_point()
 
 #bestNTree <- 21
-bestNTree <- 30
+bestNTree <- 23
 
 
 accPerNTrees[accPerNTrees$ntree == bestNTree,]

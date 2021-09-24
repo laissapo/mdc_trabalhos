@@ -279,37 +279,52 @@ a) *Gráfico \textsl{Elbow Curve}:* Construa um gráfico com a soma das distânc
 # Construindo um gráfico com as distâncias intra-cluster
 
 # Calcula a matriz de distancias:
-d <- dist(carros[, 2:29], method="euclidean")
+#d <- dist(carros[, 2:29], method="euclidean")
 
 # ----------------------------------
 # DUVIDA: quais valores devo usar, acima?
 # ----------------------------------
 
 # Visualiza a matriz de distancias com a funcao heatmap
-heatmap(as.matrix(d), symm=TRUE)
+#heatmap(as.matrix(d), symm=TRUE)
 
 # Aplica o algoritmo de agrupamento hierarquico
-clusters <- hclust(d, method="complete")
+#clusters <- hclust(d, method="complete")
 
 # Apresenta o dendrograma resultante:
-plot(clusters)
+#plot(clusters)
 
 # Corta o dendrograma no numero k de grupos e retorna o 
 # agrupamento dos dados
-clusters_cut <- cutree(clusters, k=30)
+#clusters_cut <- cutree(clusters, k=30)
 
 # Mostra os resultados
-table(clusters_cut, carros$V1)
+#table(clusters_cut, carros$V1)
 
 # Visualiza os agrupamentos
-ggplot(carros, aes(V1,  V3, V19, V21, V23, V5_turbo, V7_convertible, V7_sedan, V7_wagon, V7_hardtop, V8_4wd, V9_rear, V15_dohc, V15_ohcv, V15_ohc, V15_l, V15_ohcf, V15_dohcv, V16_six, V16_five, V16_three, V16_twelve, V16_two, V16_eight, V18_2bbl, V18_mfi, V18_1bbl, V18_spfi, V18_spdi, color=V1)) + 
-  geom_point(alpha=0.4, size=3.5) + 
-  geom_point(col=clusters_cut) + 
-  scale_color_manual(values=c('black', 'red', 'green'))
+#ggplot(carros, aes(V1,  V3, V19, V21, V23, V5_turbo, V7_convertible, V7_sedan, #V7_wagon, V7_hardtop, V8_4wd, V9_rear, V15_dohc, V15_ohcv, V15_ohc, V15_l, V15_ohcf, #V15_dohcv, V16_six, V16_five, V16_three, V16_twelve, V16_two, V16_eight, V18_2bbl, #V18_mfi, V18_1bbl, V18_spfi, V18_spdi, color=V1)) + 
+#  geom_point(alpha=0.4, size=3.5) + 
+#  geom_point(col=clusters_cut) + 
+#  scale_color_manual(values=c('black', 'red', 'green'))
 
 # ----------------------------------
 # DUVIDA: como visualizar os agrupamentos? 
 # ----------------------------------
+
+library(cluster)
+library(factoextra)
+library(NbClust)
+
+carros_scaled <- carros[,3:length(carros)]
+carros_scaled[,1:3] <- scale(carros_scaled[,1:3])
+df <- carros_scaled
+df <- na.omit(df)
+
+# Determina o numero de grupos
+set.seed(123)
+fviz_nbclust(df, kmeans, method="wss", k.max = 30)
+#TODO: não encontrado parametro para mínimo=2
+
 
 ```
 
@@ -318,6 +333,8 @@ b) *Gráfico da Silhueta:* Construa um gráfico com o valor da silhueta para $K$
 ```{r atv2b-code}
 # Construindo um gráfico com os valores da silhueta
 
+# Determina o numero de grupos (medida de silhueta)
+fviz_nbclust(df, kmeans, method="silhouette", k.max = 30)
 
 
 ```
@@ -325,6 +342,19 @@ b) *Gráfico da Silhueta:* Construa um gráfico com o valor da silhueta para $K$
 c) *Escolha do $K$:* Avalie os gráficos gerados nos itens anteriores e escolha o melhor valor  de $K$ com base nas informações desses gráficos e na sua análise. Se desejar, use também a função `NbClust` para ajudar nas análises. Com o valor de $K$ definido, utilize o rótulo obtido para cada amostra, indicando o grupo ao qual ela pertence, para gerar um gráfico de dispersão (atribuindo cores diferentes para cada grupo).
 
 ```{r atv2c-code}
+
+# k escolhido: 2
+
+# TODO: erro ao utilizar NbClust
+#nb <- NbClust(carros_scaled, distance="euclidean", 
+#              min.nc=2, max.nc=10, method="complete", 
+#              index="all")
+
+# utilizacao de eclust que, internamente, utiliza NbClust
+library(factoextra)
+km.res <- eclust(carros_scaled, "kmeans", k=2, nstart=25, graph=FALSE)
+fviz_cluster(km.res, geom="point", frame.type="norm")
+
 # Aplicando o k-means com o k escolhido 
 
 # Construindo um gráfico de dispersão
