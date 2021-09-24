@@ -23,9 +23,9 @@ Antes de começar a implementação do seu trabalho configure o _workspace_ e im
 ```{r atv0-code}
 # Adicione os pacotes usados neste trabalho:
 library(datasets)
-
 library ( mlbench )
 library ( caret )
+library(ggplot2)
 
 # Configure ambiente de trabalho na mesma pasta 
 # onde colocou a base de dados:
@@ -227,23 +227,19 @@ dim(carros)
 #[1] 205  54
 
 #Conjunto de atributos
-#setdiff(names(carros), names(carros_atributos[altamente_corr]))
+setdiff(names(carros), names(carros_atributos[altamente_corr]))
 
 carros <- carros[, setdiff(names(carros), names(carros_atributos[altamente_corr]))]
 
 dim(carros)
 #[1] 205  29
 
-
 # Verificando se agora, depois de reduzir as dimensões, existem exemplos repetidos
 dim(unique(carros))
 #[1] 150  29
-# RESULTADO: EXISTEM EXEMPLOS REPETIDOS
-
 
 # Desconsiderando exemplos repetidos
 carros <- unique(carros)
-
 
 ```
 
@@ -259,15 +255,15 @@ Primeiramente, observamos os dados de forma resumida, através da função `summ
 
 Para corrigir esses valores incorretos, primeiro fizemos a conferência se havia algum valor "NA", o que nos retornou _false_. Olhando o conjunto de dados, nos atributos mencionados assim, notamos que apesar de não haver valores vazios ou "NA", havia, porém, valores iguais a "?", explicando porque alguns atributos numéricos estavam sendo tratados como caracteres. Para facilitar a manipulação, todos esses valores foram convertidos para NA, pois assim, pela função `summary`, poderemos obter o valor médio dos atributos e atribuir este valor para as observações faltantes.
 
-Outro tratamento importante é a verificação de amostras duplicadas. Aplicamos a função `unique`, cuja finalidade é identificar apenas as amostras com valores únicos (ou seja, não repetidos) no conjunto de dados. Não foram identificados nenhuma amostra duplicada e por este motivo mantivemos o conjunto de dados inicial.
+Outro tratamento importante é a verificação de amostras duplicadas. Aplicamos a função `unique`, cuja finalidade é identificar apenas as amostras com valores únicos (ou seja, não repetidos) no conjunto de dados. Nesse momento não foram identificados nenhuma amostra duplicada e por este motivo mantivemos o conjunto de dados inicial.
 
 Para fazer a seleção dos atributos, primeiro buscamos identificar aqueles em que havia muitos valores faltantes, pois esta variável pouco contribuiria para a análise. O atributo V2, por exemplo, apresenta 41 valores NAs (20% do total de observações), e por isso decidimos eliminá-lo. Em seguida, verificamos quantas observações possuiam NAs em qualquer um dos campos, o que nos levou a um total de 10 observações. Como essa quantia é pequena, em relação ao total (4,78%), decidimos substituir esses valores pelas respectivas médias dos atributos.
 
-A etapa seguinte de seleção dos atributos consistia na identificação e remoção dos atributos redundantes, visto que isso permite reduzir a dimensionalidade do conjunto de dados e economizar processamento. Primeiramente transformamos todas as variáveis categóricas em variáveis numéricas pelo método one hot enconding, o que permitiu a utilização das mesmas no cálculo da matriz de correlação. A matriz de correlação tem o objetivo de identificar quais dos atributos são mais ou menos correlacionados com os demais, sendo, portanto, uma boa medida da redundância. Decidimos retirar do nosso conjunto de dados todos os atributos cuja correlação seja de no mínimo 50% em relação a um ou mais dos outros atributos.
+A etapa seguinte de seleção dos atributos consistia na identificação e remoção dos atributos redundantes, visto que isso permite reduzir a dimensionalidade do conjunto de dados e economizar processamento. Primeiramente transformamos todas as variáveis categóricas em variáveis numéricas pelo método one hot enconding, o que permitiu a utilização das mesmas no cálculo da matriz de correlação. A matriz de correlação tem o objetivo de identificar quais dos atributos são mais ou menos correlacionados com os demais, sendo, portanto, uma boa medida da redundância. Decidimos retirar do nosso conjunto de dados todos os atributos cuja correlação seja de no mínimo 50% em relação a um ou mais dos outros atributos. Esse corte permitiu que o número de atributos do nosso conjunto de dados fosse reduzido de 54 para 29.
 
-Esse corte permitiu que o número de atributos do nosso conjunto de dados fosse reduzido de 54 para 29.
+Decidimos fazer a transformação de todas as variáveis não numéricas - ao invés de transformar apenas aquelas que julgávamos necessárias manter - para poder incluí-las na matriz de correlação e só então, a partir dessa matriz, termos um referencial de qual manteríamos ou não. Observando atentamente os atributos indicados como altamente correlacionados, notamos como alguns até poderiam ter sido eliminados desde o início, como é o caso do atributo v4 (fuel_type) e v18 (fuel_system), pois o segundo atributo é suficiente para obter informações a respeito do primeiro (correlação igual a 1). De qualquer forma, nossa decisão em fazer uma análise criteriosa da correlação, antes de remover qualquer atributo se deve ao fato de não termos conhecimento inicial sobre o universo analisado.
 
-
+Por fim, decidimos checar novamente se após a redução dos atributos havia amostras repetidas e desta vez tivemos um resultado positivo: 55 amostras eram repetidas. Retirando-as, nosso conjunto de dados final ficou com 150 observações e 29 atributos.
 <!-- Fim da resposta -->
 
 
@@ -282,7 +278,38 @@ a) *Gráfico \textsl{Elbow Curve}:* Construa um gráfico com a soma das distânc
 ```{r atv2a-code}
 # Construindo um gráfico com as distâncias intra-cluster
 
+# Calcula a matriz de distancias:
+d <- dist(carros[, 2:29], method="euclidean")
 
+# ----------------------------------
+# DUVIDA: quais valores devo usar, acima?
+# ----------------------------------
+
+# Visualiza a matriz de distancias com a funcao heatmap
+heatmap(as.matrix(d), symm=TRUE)
+
+# Aplica o algoritmo de agrupamento hierarquico
+clusters <- hclust(d, method="complete")
+
+# Apresenta o dendrograma resultante:
+plot(clusters)
+
+# Corta o dendrograma no numero k de grupos e retorna o 
+# agrupamento dos dados
+clusters_cut <- cutree(clusters, k=30)
+
+# Mostra os resultados
+table(clusters_cut, carros$V1)
+
+# Visualiza os agrupamentos
+ggplot(carros, aes(V1,  V3, V19, V21, V23, V5_turbo, V7_convertible, V7_sedan, V7_wagon, V7_hardtop, V8_4wd, V9_rear, V15_dohc, V15_ohcv, V15_ohc, V15_l, V15_ohcf, V15_dohcv, V16_six, V16_five, V16_three, V16_twelve, V16_two, V16_eight, V18_2bbl, V18_mfi, V18_1bbl, V18_spfi, V18_spdi, color=V1)) + 
+  geom_point(alpha=0.4, size=3.5) + 
+  geom_point(col=clusters_cut) + 
+  scale_color_manual(values=c('black', 'red', 'green'))
+
+# ----------------------------------
+# DUVIDA: como visualizar os agrupamentos? 
+# ----------------------------------
 
 ```
 
