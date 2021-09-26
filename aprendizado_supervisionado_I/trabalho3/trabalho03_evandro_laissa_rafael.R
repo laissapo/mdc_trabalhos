@@ -48,6 +48,20 @@ library(randomForest)
 # Configurem o valor da semente.
 set.seed(45) # Coloquem o valor que desejarem.
 
+# Leitura da base de Teste. Descomentem as linhas abaixo quando o 
+# conjunto de teste estiver dispon?vel.
+
+test_set <- read.csv("test_set_patient_status_covid19.csv", stringsAsFactors = T) # Descomentar
+
+# As duas linhas abaixo s?o um trick para corrigir os "levels" na
+# coluna country. Ele apenas adiciona 1 exemplo de treino na primeira
+# linha do teste e depois retira-o para obter o test_set original. 
+# Nao se preocupem, eh apenas para nivelamento interno do R. 
+# Certifiquem-se de executar os comandos na seguinte ordem:
+# linha 38, linha 47 e linha 48 quando a base de teste estiver disponivel
+
+temporary_test <- rbind(train_val_set[1,], test_set) # Descomentar
+test_set <- temporary_test[-1,] # Descomentar
 
 
 ###############################################################################
@@ -78,6 +92,11 @@ train_val_set[train_val_set$chronic_disease_binary == "True",]  # maioria morreu
 table(train_val_set[train_val_set$chronic_disease_binary == "True",]$label)
 #dead onTreatment   recovered 
 #25           0           7 
+table(train_val_set$sex)
+#female         male not informed 
+#23003        13363           55
+train_val_set[train_val_set$age == 99,]
+
 
 #------------------------------------------------#
 # Remove os elementos repetidos antes da divisão Treino/Validação/Test
@@ -101,13 +120,15 @@ dataTrain <- train_val_set[randomTrainIndexes, ]
 dataVal  <- train_val_set[-randomTrainIndexes, ] 
 
 merge(dataTrain, dataVal)
-#merge(dataTrain, dataTest)
-#merge(dataVal, dataTest)
+merge(dataTrain, test_set)
+merge(dataVal, test_set)
 
 dim(dataTrain)
 #[1] 24280    15
 dim(dataVal)
 #[1] 6071   15
+dim(test_set)
+#[1] 7588   15
 
 #------------------------------------------------#
 # Faz o balanceamento das classes
@@ -182,9 +203,10 @@ table(dataTrain$label)
 # xval = 10 significa que a divisão treinamento/validação será realizado 10
 # vezes. 
 
-summary(dataTrain)
-head(dataTrain,0)
-colnames(dataTrain)
+
+#summary(dataTrain)
+#head(dataTrain,0)
+#colnames(dataTrain)
 #label
 #age, sex, country, latitude, longitude, date_onset_symptoms, 
 #date_admission_hospital, date_confirmation, lives_in_Wuhan,
@@ -211,8 +233,7 @@ summary(treeModel)
 # Vamos ver a performance no conjunto de treinamento
 val_train <- predict(treeModel, dataTrain, type="class")
 cm <- confusionMatrix(data = as.factor(val_train), 
-                      reference = as.factor(dataTrain$label), 
-                      positive='yes')
+                      reference = as.factor(dataTrain$label))
 
 cm_relative <- calculaMatrizConfusaoRelativa(cm)
 cm_relative
@@ -232,8 +253,7 @@ acc_bal
 # Vamos ver a performance no conjunto de validação
 val_pred <- predict(treeModel, dataVal, type="class")
 cm <- confusionMatrix(data = as.factor(val_pred), 
-                      reference = as.factor(dataVal$label), 
-                      positive='yes')
+                      reference = as.factor(dataVal$label))
 
 cm_relative <- calculaMatrizConfusaoRelativa(cm)
 cm_relative
@@ -249,6 +269,23 @@ acc_bal
 #[1] 0.8666667
 
 ######### TODO: Avaliação no conjunto de Teste ##########
+
+test_pred <- predict(treeModel, test_set, type="class")
+cm <- confusionMatrix(data = as.factor(test_pred), 
+                      reference = as.factor(test_set$label))
+
+cm_relative <- calculaMatrizConfusaoRelativa(cm)
+cm_relative
+
+#              Prediction
+#Reference      dead onTreatment recovered
+#dead           0.99        0.01      0.00
+#onTreatment    0.00        0.83      0.16
+#recovered      0.01        0.23      0.77
+
+acc_bal <- (cm_relative[1,1] + cm_relative[2,2]+ cm_relative[3,3])/3
+acc_bal
+#[1] 0.8633333
 
 
 ###############################################################################
@@ -286,8 +323,7 @@ for (maxDepth in 1:number_of_depths){
     # Avaliando no conjunto de treino
     train_pred <- predict(treeModel, dataTrain, type="class")
     cm_train <- confusionMatrix(data = as.factor(train_pred), 
-                                reference = as.factor(dataTrain$label), 
-                                positive='yes')
+                                reference = as.factor(dataTrain$label))
     
     cm_relative_train <- calculaMatrizConfusaoRelativa(cm_train)
     acc_bal_train <- (cm_relative_train[1,1] + cm_relative_train[2,2] + cm_relative_train[3,3])/3
@@ -295,8 +331,7 @@ for (maxDepth in 1:number_of_depths){
     # Avaliando no conjunto de validacao
     val_pred <- predict(treeModel, dataVal, type="class")
     cm_val <- confusionMatrix(data = as.factor(val_pred), 
-                              reference = as.factor(dataVal$label), 
-                              positive='yes')
+                              reference = as.factor(dataVal$label))
     
     cm_relative_val <- calculaMatrizConfusaoRelativa(cm_val)
     acc_bal_val <- (cm_relative_val[1,1] + cm_relative_val[2,2] + cm_relative_val[3,3])/3
@@ -320,6 +355,35 @@ accPerDepth[accPerDepth$depth == bestMaxdepth,]
 
 #TODO: avaliar cm_relative e acc_bal no ponto ótimo para o conjunto de teste
 
+# criando treeModel utilizando a melhor profundidade
+treeModel <- rpart(formula=label ~ age + sex + country + latitude + longitude + 
+                       date_onset_symptoms + date_admission_hospital + 
+                       date_confirmation + lives_in_Wuhan + travel_history_dates + 
+                       travel_history_location + chronic_disease_binary +
+                       date_death_or_discharge + travel_history_binary, 
+                   data=dataTrain, method="class",
+                   control=rpart.control(minsplit=2, cp=0.0, xval = 10, 
+                                         maxdepth = bestMaxdepth),
+                   parms= list(split="information"))
+
+# Avaliando no conjunto de teste
+
+test_pred <- predict(treeModel, test_set, type="class")
+cm <- confusionMatrix(data = as.factor(test_pred), 
+                      reference = as.factor(test_set$label))
+
+cm_relative <- calculaMatrizConfusaoRelativa(cm)
+cm_relative
+
+#              Prediction
+#Reference      dead onTreatment recovered
+#dead           0.99        0.01      0.00
+#onTreatment    0.00        0.72      0.28
+#recovered      0.01        0.01      0.98
+
+acc_bal <- (cm_relative[1,1] + cm_relative[2,2]+ cm_relative[3,3])/3
+acc_bal
+#[1] 0.8966667
 
 ###############################################################################
 # Questao 4                                                                   #
@@ -332,17 +396,8 @@ accPerDepth[accPerDepth$depth == bestMaxdepth,]
 #                                                                             #
 ###############################################################################
 
-# inicialmente, montamos uma treemodel com todos os atributos
+# inicialmente, consideramos a treemodel com todos os atributos
 # já considerando o ponto ótimo
-treeModel <- rpart(formula=label ~ age + sex + country + latitude + longitude + 
-                       date_onset_symptoms + date_admission_hospital + 
-                       date_confirmation + lives_in_Wuhan + travel_history_dates + 
-                       travel_history_location + chronic_disease_binary +
-                       date_death_or_discharge + travel_history_binary, 
-                   data=dataTrain, method="class",
-                   control=rpart.control(minsplit=2, cp=0.0, xval = 10, 
-                                         maxdepth = bestMaxdepth),
-                   parms= list(split="information"))
 
 ### Verificando a importância de cada feature ###
 importance_per_feature <- treeModel$variable.importance
@@ -403,8 +458,7 @@ prp(treeModel_3)
 # Vamos ver a performance no conjunto de validação
 val_pred <- predict(treeModel_1, dataVal, type="class")
 cm <- confusionMatrix(data = as.factor(val_pred), 
-                      reference = as.factor(dataVal$label), 
-                      positive='yes')
+                      reference = as.factor(dataVal$label))
 
 cm_relative <- calculaMatrizConfusaoRelativa(cm)
 cm_relative
@@ -424,8 +478,7 @@ acc_bal
 # Vamos ver a performance no conjunto de validação
 val_pred <- predict(treeModel_2, dataVal, type="class")
 cm <- confusionMatrix(data = as.factor(val_pred), 
-                      reference = as.factor(dataVal$label), 
-                      positive='yes')
+                      reference = as.factor(dataVal$label))
 
 cm_relative <- calculaMatrizConfusaoRelativa(cm)
 cm_relative
@@ -445,8 +498,7 @@ acc_bal
 # Vamos ver a performance no conjunto de validação
 val_pred <- predict(treeModel_3, dataVal, type="class")
 cm <- confusionMatrix(data = as.factor(val_pred), 
-                      reference = as.factor(dataVal$label), 
-                      positive='yes')
+                      reference = as.factor(dataVal$label))
 
 cm_relative <- calculaMatrizConfusaoRelativa(cm)
 cm_relative
@@ -464,6 +516,27 @@ acc_bal
 
 #TODO: avaliar no conjunto de teste
 
+# Avaliando no conjunto de teste
+
+test_pred <- predict(treeModel_3, test_set, type="class")
+cm <- confusionMatrix(data = as.factor(test_pred), 
+                      reference = as.factor(test_set$label))
+
+cm_relative <- calculaMatrizConfusaoRelativa(cm)
+cm_relative
+
+#              Prediction
+#Reference      dead onTreatment recovered
+#dead           1.00        0.00      0.00
+#onTreatment    0.00        0.71      0.29
+#recovered      0.00        0.01      0.99
+
+acc_bal <- (cm_relative[1,1] + cm_relative[2,2]+ cm_relative[3,3])/3
+acc_bal
+#[1] 0.9
+
+
+
 
 ###############################################################################
 # Questao 5                                                                   #
@@ -473,7 +546,7 @@ acc_bal
 # acurácia balanceada no conjunto de treinamento e validação variando o       #
 # número de árvores geradas. Identifiquem as regiões de underfitting, ponto   #
 # ótimo e overfitting. Reportem também a matriz de confusão relativa e a      #
-# acurácia balanceada no teste para a floresta com o melhor número de árvores.#s
+# acurácia balanceada no teste para a floresta com o melhor número de árvores.#
 #                                                                             #
 ###############################################################################
 
@@ -503,8 +576,7 @@ legend("top", colnames(rfModel$err.rate),col=1:4,cex=0.8,fill=1:4)
 # Matriz de Confusão
 val_pred <- predict(rfModel, dataVal, type="class")
 cm <- confusionMatrix(data = as.factor(val_pred), 
-                      reference = as.factor(dataVal$label), 
-                      positive='yes')
+                      reference = as.factor(dataVal$label))
 
 cm_relative <- calculaMatrizConfusaoRelativa(cm)
 cm_relative
@@ -530,7 +602,8 @@ acc_bal
 #nTreeList = c(1, 2, 3, 5, 8, 10, 11:25, 30, 35, 40, 50, 100, 150, 200, 500)
 #nTreeList = c(1, 2, 3, 5, 8, 10, 11:25, 30, 35, 40, 50, 75, 100, 125)
 #nTreeList = c(1, 2, 3, 5, 8, 10, 11:25, 30, 35, 40, 50, 60, 70, 80)
-nTreeList = c(1, 2, 3, 5, 8, 10, 11:25, 30, 35, 40, 50, 75, 100, 125, 150, 175, 200)
+#nTreeList = c(1, 2, 3, 5, 8, 10, 11:25, 30, 35, 40, 50, 75, 100, 125, 150, 175, 200)
+nTreeList = c(1, 2, 3, 5, 8, 10, 11:25, 30, 40, 50, 75, 100)
 
 # legal para mostrar no gráfico
 #nTreeList = c(1, 2, 3, 5, 8, 10, 11:25, 30, 35, 40, 50)
@@ -557,8 +630,7 @@ for (i in 1:length(nTreeList)){
     # Avaliando no conjunto de treino
     train_pred <- predict(rfModel, dataTrain, type="class")
     cm_train <- confusionMatrix(data = as.factor(train_pred), 
-                                reference = as.factor(dataTrain$label), 
-                                positive='yes')
+                                reference = as.factor(dataTrain$label))
     
     cm_relative_train <- calculaMatrizConfusaoRelativa(cm_train)
     acc_bal_train <- (cm_relative_train[1,1] + cm_relative_train[2,2] + cm_relative_train[3,3])/3
@@ -566,8 +638,7 @@ for (i in 1:length(nTreeList)){
     # Avaliando no conjunto de validacao
     val_pred <- predict(rfModel, dataVal, type="class")
     cm_val <- confusionMatrix(data = as.factor(val_pred), 
-                              reference = as.factor(dataVal$label), 
-                              positive='yes')
+                              reference = as.factor(dataVal$label))
     
     cm_relative_val <- calculaMatrizConfusaoRelativa(cm_val)
     acc_bal_val <- (cm_relative_val[1,1] + cm_relative_val[2,2] + cm_relative_val[3,3])/3
@@ -582,16 +653,41 @@ for (i in 1:length(nTreeList)){
 accPerNTrees <- melt(accPerNTrees, id="ntree")  # convert to long format
 ggplot(data=accPerNTrees, aes(x=ntree, y=value, colour=variable)) + geom_line() + geom_point()
 
-#bestNTree <- 21
-bestNTree <- 23
-
+bestNTree <- 17
 
 accPerNTrees[accPerNTrees$ntree == bestNTree,]
 max(accPerNTrees[accPerNTrees$variable == "accVal",]$value)
 
-
-
 #TODO: aplicar no conjunto de teste
+
+
+# floresta com melhor numero de arvores
+rfModel <- randomForest(formula=label ~ age + sex + country + latitude + longitude + 
+                            date_onset_symptoms + date_admission_hospital + 
+                            date_confirmation + lives_in_Wuhan + travel_history_dates + 
+                            travel_history_location + chronic_disease_binary +
+                            date_death_or_discharge + travel_history_binary, 
+                        data= dataTrain, ntree=bestNTree, mtry=4)
+
+# Avaliando no conjunto de teste
+
+test_pred <- predict(rfModel, test_set, type="class")
+cm <- confusionMatrix(data = as.factor(test_pred), 
+                      reference = as.factor(test_set$label))
+
+cm_relative <- calculaMatrizConfusaoRelativa(cm)
+cm_relative
+
+#              Prediction
+#Reference      dead onTreatment recovered
+#dead           1.00        0.00      0.00
+#onTreatment    0.00        0.72      0.28
+#recovered      0.00        0.02      0.98
+
+acc_bal <- (cm_relative[1,1] + cm_relative[2,2]+ cm_relative[3,3])/3
+acc_bal
+#[1] 0.9
+
 
 
 ###############################################################################
@@ -655,21 +751,5 @@ max(accPerNTrees[accPerNTrees$variable == "accVal",]$value)
 #                                                                             #
 ###############################################################################
 
-
-
-# Leitura da base de Teste. Descomentem as linhas abaixo quando o 
-# conjunto de teste estiver dispon?vel.
-
-#test_set <- read.csv("test_set_patient_status_covid19.csv", stringsAsFactors = T) # Descomentar
-
-# As duas linhas abaixo s?o um trick para corrigir os "levels" na
-# coluna country. Ele apenas adiciona 1 exemplo de treino na primeira
-# linha do teste e depois retira-o para obter o test_set original. 
-# Nao se preocupem, eh apenas para nivelamento interno do R. 
-# Certifiquem-se de executar os comandos na seguinte ordem:
-# linha 38, linha 47 e linha 48 quando a base de teste estiver disponivel
-
-#temporary_test <- rbind(train_val_set[1,], test_set) # Descomentar
-#test_set <- temporary_test[-1,] # Descomentar
 
 max(accPerNTrees[accPerNTrees$variable == "accVal",]$value)
