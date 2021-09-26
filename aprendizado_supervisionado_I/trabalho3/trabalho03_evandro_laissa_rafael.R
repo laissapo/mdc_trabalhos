@@ -44,6 +44,8 @@ library(rpart)
 library(rpart.plot)
 library(randomForest)
 
+library(ramify)
+
 
 # Configurem o valor da semente.
 set.seed(45) # Coloquem o valor que desejarem.
@@ -268,7 +270,7 @@ acc_bal <- (cm_relative[1,1] + cm_relative[2,2]+ cm_relative[3,3])/3
 acc_bal
 #[1] 0.8666667
 
-######### TODO: Avaliação no conjunto de Teste ##########
+######### Avaliação no conjunto de Teste ##########
 
 test_pred <- predict(treeModel, test_set, type="class")
 cm <- confusionMatrix(data = as.factor(test_pred), 
@@ -353,7 +355,7 @@ accPerDepth[accPerDepth$depth == bestMaxdepth,]
 #8      8 accTrain 0.9100000
 #23     8   accVal 0.9033333
 
-#TODO: avaliar cm_relative e acc_bal no ponto ótimo para o conjunto de teste
+#avaliar cm_relative e acc_bal no ponto ótimo para o conjunto de teste
 
 # criando treeModel utilizando a melhor profundidade
 treeModel <- rpart(formula=label ~ age + sex + country + latitude + longitude + 
@@ -514,8 +516,6 @@ acc_bal
 #[1] 0.9
 
 
-#TODO: avaliar no conjunto de teste
-
 # Avaliando no conjunto de teste
 
 test_pred <- predict(treeModel_3, test_set, type="class")
@@ -658,7 +658,7 @@ bestNTree <- 17
 accPerNTrees[accPerNTrees$ntree == bestNTree,]
 max(accPerNTrees[accPerNTrees$variable == "accVal",]$value)
 
-#TODO: aplicar no conjunto de teste
+# Aplicar no conjunto de teste
 
 
 # floresta com melhor numero de arvores
@@ -688,6 +688,7 @@ acc_bal <- (cm_relative[1,1] + cm_relative[2,2]+ cm_relative[3,3])/3
 acc_bal
 #[1] 0.9
 
+max(accPerNTrees[accPerNTrees$variable == "accVal",]$value)
 
 
 ###############################################################################
@@ -699,6 +700,8 @@ acc_bal
 #                                                                             #
 ###############################################################################
 
+## relatório
+
 ###############################################################################
 # Questao 6.b                                                                 #
 # -----------                                                                 #
@@ -707,6 +710,8 @@ acc_bal
 # geradas ao longo do trabalho.                                               #
 #                                                                             #
 ###############################################################################
+
+## relatório
 
 ###############################################################################
 # Questao 6.c                                                                 #
@@ -717,6 +722,7 @@ acc_bal
 #                                                                             #
 ###############################################################################
 
+## relatório
 
 ###############################################################################
 # Opcional 1                                                                  #
@@ -729,7 +735,137 @@ acc_bal
 #                                                                             #
 ###############################################################################
 
- 
+dim(dataTrainDead)
+#[1] 1412   15
+dim(dataTrainOnTreatment)
+#[1] 17206    15
+dim(dataTrainRecovered)
+#[1] 5662   15
+
+lowest_samples <- min(nrow(dataTrainDead), 
+                      nrow(dataTrainOnTreatment), 
+                      nrow(dataTrainRecovered))
+lowest_samples
+
+###############
+#   BAGGING   #
+###############
+ntrees <- 30
+
+# Matriz de tamano N x M inicializada com zeros. Em que N ? o n?mero
+# de exemplos no conjunto de valida??o e M ? o n?mero de ?rvores que
+# teremos no Ensemble. Cada coluna ter? os valores preditos por  
+# cada ?rvore no Ensemble. 
+valPredictedClasses <- matrix(0, nrow = nrow(dataVal), ncol = ntrees)
+
+for(i in 1:ntrees){
+    
+    # Toma uma quantidade aleatória que está entre 85% e 100% 
+    # do número de exemplos da classe menos frequente
+    nsamples <- round(runif(1, min=0.85, max=1.0)*lowest_samples)
+
+    # Seleciona, com reposição (Bagging), os índices da classe "dead"
+    DeadIdx <- sample(1:nrow(dataTrainDead), nsamples, replace = TRUE)
+    
+    # Seleciona, com reposição (Bagging), os índices da classe "onTreatment"
+    OnTreatmentIdx <- sample(1:nrow(dataTrainOnTreatment), nsamples, replace = TRUE)
+    
+    # Seleciona, com reposição (Bagging), os índices da classe "recovered"
+    dataTrainRecoveredIdx <- sample(1:nrow(dataTrainRecovered), nsamples, replace = TRUE)
+    
+    # Monta o conjunto de treinamento baseado nos índices tomados anteriormente
+    subsetDataTrain <- rbind(dataTrainDead[DeadIdx,], 
+                             dataTrainOnTreatment[OnTreatmentIdx,], 
+                             dataTrainRecovered[dataTrainRecoveredIdx,])
+    
+    # TODO: avaliar com e sem o maxdepth=bestMaxdepth
+    
+    # Treina o i-th modelo do ensemble
+    treeModel <- rpart(formula=label ~ age + sex + country + latitude + longitude + 
+                           date_onset_symptoms + date_admission_hospital + 
+                           date_confirmation + lives_in_Wuhan + travel_history_dates + 
+                           travel_history_location + chronic_disease_binary +
+                           date_death_or_discharge + travel_history_binary, 
+                       data=subsetDataTrain, method="class",
+                       control=rpart.control(minsplit=2, cp=0.0, xval = 10, 
+                                             maxdepth = bestMaxdepth),
+                       parms= list(split="information"))
+
+    # Armazena os resultados para cada árvore.
+    valPreds <- predict(treeModel, dataVal)
+    
+    # Como vamos contar os votos, precisamos transformar as predicoes
+    # em numeros. Assim o "valPreds" anterior ? uma matriz N x 2
+    # em que N eh o numero de exemplos no conjunto de validacao
+    # e 2 eh o numero de classes ("yes" ou "no"). Assim, se a predicao
+    # for "no" vamos colocar valor 0, mas se for "yes" vamos colocar 
+    # valor 1. A linha abaixo realiza esta operacao.
+    #valClasses <- argmax(valPreds) - 1
+    #valPredictedClasses[,i] <- valClasses 
+
+    valClasses <- argmax(valPreds)
+    valPredictedClasses[,i] <- valClasses
+}
+
+mode<-function(x){which.max(tabulate(x))}
+
+# Contagem de votos. Por exemplo, se tivermos 5 ?vores, podemos ter 
+# a seguinte predi??o: 1 0 0 1 0. A soma resulta em 2. Assim, a propor??o
+# ? 2/5 = 0.4. J? que 0.4 < 0.5, ent?o a classe mais votada ? zero. 
+#votes <- rowSums(valPredictedClasses)/ntrees
+
+# votacao pela moda
+votes <- apply(valPredictedClasses,1,mode)
+votes
+
+cm <- confusionMatrix(data = as.factor(votes), 
+                      reference = as.factor(dataVal$label))
+
+cm_relative <- calculaMatrizConfusaoRelativa(cm)
+cm_relative
+
+#Prediction
+#Reference     dead onTreatment recovered
+#dead        1.00        0.00      0.00
+#onTreatment 0.00        0.81      0.18
+#recovered   0.00        0.19      0.81
+
+acc_bal <- (cm_relative[1,1] + cm_relative[2,2] + cm_relative[3,3])/3
+acc_bal
+#[1] 0.8733333
+
+
+
+#### Vamos variar o n?mero de classificadores no Bagging e ver  ####
+####          como a acur?cia de valida??o ? impactada          ####
+#accValBagging <- c(ntrees-1) 
+accValBagging <- c(0,0) 
+
+for(i in 2:ntrees){
+    
+    #votes <- apply(valPredictedClasses[,1:i],1,mode)
+    votes <- apply(valPredictedClasses,1,mode)
+    
+    #votes <- rowSums(valPredictedClasses[,1:i])/i
+    
+    #votes[votes >= 0.5] <- 'yes'
+    #votes[votes < 0.5] <- 'no'
+
+    #cm <- confusionMatrix(data = as.factor(votes), 
+                          reference = as.factor(dataVal$label))
+    
+    #cm_relative <- calculaMatrizConfusaoRelativa(cm)
+    #acc_bal <- (cm_relative[1,1] + cm_relative[2,2] + cm_relative[3,3])/3
+    
+    cat("acc_bal: ", acc_bal, "\n")
+    
+    #accValBagging[i-1] <- acc_bal
+}
+
+plot(2:ntrees, accValBagging, xlab = "Number of classifiers", 
+     ylab = "Balanced Acc Val", col="blue", type="o")
+
+
 
 ###############################################################################
 # Opcional 2                                                                  #
@@ -740,6 +876,127 @@ acc_bal
 # total de atributos que vocês têm disponível.                                #
 #                                                                             #
 ###############################################################################
+
+getHypothesis <- function(feature_names){
+    
+    hypothesis_string <- "hypothesis <- formula(label ~ "
+    for(i in 1:length(feature_names)){
+        hypothesis_string <- paste(hypothesis_string, 
+                                   feature_names[i], " + ",
+                                   sep = "")
+    }
+    hypothesis_string <- substr(hypothesis_string, 1, nchar(hypothesis_string)-3)
+    hypothesis_string <- paste(hypothesis_string, ")")
+    hypothesis <- eval(parse(text=hypothesis_string))
+    
+    #cat("hypothesis_string: ", hypothesis_string, "\n")
+    
+    return(hypothesis)
+}
+
+#numero de features: sqrt(m), m/2, 3m/4
+num_features_list <- c(4, 7, 11)
+
+# sortear numero de features
+num_features <- num_features_list[sample(1:3,1)]
+num_features
+
+# sortear as features
+features <- sample(colnames(dataVal[,1:14]), num_features)
+features
+
+# formula
+hypothesis <- getHypothesis(features)
+hypothesis
+
+###############
+#   BAGGING   #
+###############
+ntrees <- 50
+
+# Matriz de tamano N x M inicializada com zeros. Em que N ? o n?mero
+# de exemplos no conjunto de valida??o e M ? o n?mero de ?rvores que
+# teremos no Ensemble. Cada coluna ter? os valores preditos por  
+# cada ?rvore no Ensemble. 
+valPredictedClasses <- matrix(0, nrow = nrow(dataVal), ncol = ntrees)
+
+for(i in 1:ntrees){
+    
+    # Toma uma quantidade aleatória que está entre 85% e 100% 
+    # do número de exemplos da classe menos frequente
+    nsamples <- round(runif(1, min=0.85, max=1.0)*lowest_samples)
+    
+    # Seleciona, com reposição (Bagging), os índices da classe "dead"
+    DeadIdx <- sample(1:nrow(dataTrainDead), nsamples, replace = TRUE)
+    
+    # Seleciona, com reposição (Bagging), os índices da classe "onTreatment"
+    OnTreatmentIdx <- sample(1:nrow(dataTrainOnTreatment), nsamples, replace = TRUE)
+    
+    # Seleciona, com reposição (Bagging), os índices da classe "recovered"
+    dataTrainRecoveredIdx <- sample(1:nrow(dataTrainRecovered), nsamples, replace = TRUE)
+    
+    # Monta o conjunto de treinamento baseado nos índices tomados anteriormente
+    subsetDataTrain <- rbind(dataTrainDead[DeadIdx,], 
+                             dataTrainOnTreatment[OnTreatmentIdx,], 
+                             dataTrainRecovered[dataTrainRecoveredIdx,])
+    
+
+    # sortear numero de features
+    num_features <- num_features_list[sample(1:3,1)]
+
+    # sortear as features
+    features <- sample(colnames(dataVal[,1:14]), num_features)
+
+    # formula
+    hypothesis <- getHypothesis(features)
+    
+
+    # Treina o i-th modelo do ensemble
+    treeModel <- rpart(formula=hypothesis, 
+                       data=subsetDataTrain, method="class",
+                       control=rpart.control(minsplit=2, cp=0.0, xval = 10, 
+                                             maxdepth = bestMaxdepth),
+                       parms= list(split="information"))
+    
+    # Armazena os resultados para cada árvore.
+    valPreds <- predict(treeModel, dataVal)
+    
+    # Como vamos contar os votos, precisamos transformar as predicoes
+    # em numeros. Assim o "valPreds" anterior ? uma matriz N x 2
+    # em que N eh o numero de exemplos no conjunto de validacao
+    # e 2 eh o numero de classes ("yes" ou "no"). Assim, se a predicao
+    # for "no" vamos colocar valor 0, mas se for "yes" vamos colocar 
+    # valor 1. A linha abaixo realiza esta operacao.
+    #valClasses <- argmax(valPreds) - 1
+    #valPredictedClasses[,i] <- valClasses 
+    
+    valClasses <- argmax(valPreds)
+    valPredictedClasses[,i] <- valClasses
+}
+
+mode<-function(x){which.max(tabulate(x))}
+
+# votacao pela moda
+votes <- apply(valPredictedClasses,1,mode)
+votes
+
+cm <- confusionMatrix(data = as.factor(votes), 
+                      reference = as.factor(dataVal$label))
+
+cm_relative <- calculaMatrizConfusaoRelativa(cm)
+cm_relative
+
+#Prediction
+#Reference     dead onTreatment recovered
+#dead        1.00        0.00      0.00
+#onTreatment 0.00        0.81      0.18
+#recovered   0.00        0.19      0.81
+
+acc_bal <- (cm_relative[1,1] + cm_relative[2,2] + cm_relative[3,3])/3
+acc_bal
+#[1] 0.8733333
+
+
 
 ###############################################################################
 # Opcional 3                                                                  #
@@ -752,4 +1009,3 @@ acc_bal
 ###############################################################################
 
 
-max(accPerNTrees[accPerNTrees$variable == "accVal",]$value)
