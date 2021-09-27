@@ -750,7 +750,7 @@ lowest_samples
 ###############
 #   BAGGING   #
 ###############
-ntrees <- 30
+ntrees <- 50
 
 # Matriz de tamano N x M inicializada com zeros. Em que N ? o n?mero
 # de exemplos no conjunto de valida??o e M ? o n?mero de ?rvores que
@@ -807,16 +807,16 @@ for(i in 1:ntrees){
     valPredictedClasses[,i] <- valClasses
 }
 
+# funcao que devolve a moda
 mode<-function(x){which.max(tabulate(x))}
-
-# Contagem de votos. Por exemplo, se tivermos 5 ?vores, podemos ter 
-# a seguinte predi??o: 1 0 0 1 0. A soma resulta em 2. Assim, a propor??o
-# ? 2/5 = 0.4. J? que 0.4 < 0.5, ent?o a classe mais votada ? zero. 
-#votes <- rowSums(valPredictedClasses)/ntrees
 
 # votacao pela moda
 votes <- apply(valPredictedClasses,1,mode)
 votes
+
+votes[votes == 1] <- 'dead'
+votes[votes == 2] <- 'onTreatment'
+votes[votes == 3] <- 'recovered'
 
 cm <- confusionMatrix(data = as.factor(votes), 
                       reference = as.factor(dataVal$label))
@@ -827,44 +827,50 @@ cm_relative
 #Prediction
 #Reference     dead onTreatment recovered
 #dead        1.00        0.00      0.00
-#onTreatment 0.00        0.81      0.18
-#recovered   0.00        0.19      0.81
+#onTreatment 0.00        0.74      0.25
+#recovered   0.00        0.01      0.99
 
 acc_bal <- (cm_relative[1,1] + cm_relative[2,2] + cm_relative[3,3])/3
 acc_bal
-#[1] 0.8733333
-
+#[1] 0.91
 
 
 #### Vamos variar o n?mero de classificadores no Bagging e ver  ####
 ####          como a acur?cia de valida??o ? impactada          ####
-#accValBagging <- c(ntrees-1) 
-accValBagging <- c(0,0) 
+accValBagging <- c(ntrees-1) 
 
 for(i in 2:ntrees){
     
-    #votes <- apply(valPredictedClasses[,1:i],1,mode)
-    votes <- apply(valPredictedClasses,1,mode)
+    votes <- apply(valPredictedClasses[,1:i],1,mode)
+    #votes <- apply(valPredictedClasses,1,mode)
     
     #votes <- rowSums(valPredictedClasses[,1:i])/i
     
-    #votes[votes >= 0.5] <- 'yes'
-    #votes[votes < 0.5] <- 'no'
-
-    #cm <- confusionMatrix(data = as.factor(votes), 
+    votes[votes == 1] <- 'dead'
+    votes[votes == 2] <- 'onTreatment'
+    votes[votes == 3] <- 'recovered'
+    
+    
+    cm <- confusionMatrix(data = as.factor(votes), 
                           reference = as.factor(dataVal$label))
     
-    #cm_relative <- calculaMatrizConfusaoRelativa(cm)
-    #acc_bal <- (cm_relative[1,1] + cm_relative[2,2] + cm_relative[3,3])/3
+    cm_relative <- calculaMatrizConfusaoRelativa(cm)
+    acc_bal <- (cm_relative[1,1] + cm_relative[2,2] + cm_relative[3,3])/3
     
     cat("acc_bal: ", acc_bal, "\n")
     
-    #accValBagging[i-1] <- acc_bal
+    accValBagging[i-1] <- acc_bal
 }
 
 plot(2:ntrees, accValBagging, xlab = "Number of classifiers", 
      ylab = "Balanced Acc Val", col="blue", type="o")
 
+
+max(accValBagging)
+#[1] 0.91
+
+accValBagging[14]
+#[1] 0.91
 
 
 ###############################################################################
@@ -946,7 +952,9 @@ for(i in 1:ntrees){
 
     # sortear as features
     features <- sample(colnames(dataVal[,1:14]), num_features)
-
+    
+    cat("\ni: ", i, "\tfeatures: ", features)
+    
     # formula
     hypothesis <- getHypothesis(features)
     
@@ -980,6 +988,10 @@ mode<-function(x){which.max(tabulate(x))}
 votes <- apply(valPredictedClasses,1,mode)
 votes
 
+votes[votes == 1] <- 'dead'
+votes[votes == 2] <- 'onTreatment'
+votes[votes == 3] <- 'recovered'
+
 cm <- confusionMatrix(data = as.factor(votes), 
                       reference = as.factor(dataVal$label))
 
@@ -989,13 +1001,49 @@ cm_relative
 #Prediction
 #Reference     dead onTreatment recovered
 #dead        1.00        0.00      0.00
-#onTreatment 0.00        0.81      0.18
-#recovered   0.00        0.19      0.81
+#onTreatment 0.00        0.74      0.26
+#recovered   0.00        0.02      0.98
 
 acc_bal <- (cm_relative[1,1] + cm_relative[2,2] + cm_relative[3,3])/3
 acc_bal
-#[1] 0.8733333
+#[1] 0.9066667
 
+#### Vamos variar o n?mero de classificadores no Bagging e ver  ####
+####          como a acur?cia de valida??o ? impactada          ####
+accValBagging <- c(ntrees-1) 
+
+for(i in 2:ntrees){
+    
+    votes <- apply(valPredictedClasses[,1:i],1,mode)
+    #votes <- apply(valPredictedClasses,1,mode)
+    
+    #votes <- rowSums(valPredictedClasses[,1:i])/i
+    
+    votes[votes == 1] <- 'dead'
+    votes[votes == 2] <- 'onTreatment'
+    votes[votes == 3] <- 'recovered'
+    
+    
+    cm <- confusionMatrix(data = as.factor(votes), 
+                          reference = as.factor(dataVal$label))
+    
+    cm_relative <- calculaMatrizConfusaoRelativa(cm)
+    acc_bal <- (cm_relative[1,1] + cm_relative[2,2] + cm_relative[3,3])/3
+    
+    cat("acc_bal: ", acc_bal, "\n")
+    
+    accValBagging[i-1] <- acc_bal
+}
+
+plot(2:ntrees, accValBagging, xlab = "Number of classifiers", 
+     ylab = "Balanced Acc Val", col="blue", type="o")
+
+
+max(accValBagging)
+#[1] 0.91 
+
+accValBagging[14]
+#[1] 0.91 
 
 
 ###############################################################################
@@ -1008,4 +1056,5 @@ acc_bal
 #                                                                             #
 ###############################################################################
 
+# relatorio
 
