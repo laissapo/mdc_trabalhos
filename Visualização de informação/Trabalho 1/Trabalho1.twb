@@ -4,6 +4,7 @@
 <workbook original-version='18.1' source-build='2021.3.1 (20213.21.0917.1006)' source-platform='win' version='18.1' xmlns:user='http://www.tableausoftware.com/xml/user'>
   <document-format-change-manifest>
     <_.fcp.AnimationOnByDefault.true...AnimationOnByDefault />
+    <MapboxVectorStylesAndLayers />
     <_.fcp.MarkAnimation.true...MarkAnimation />
     <_.fcp.ObjectModelEncapsulateLegacy.true...ObjectModelEncapsulateLegacy />
     <_.fcp.ObjectModelTableType.true...ObjectModelTableType />
@@ -306,7 +307,72 @@
       <_.fcp.ObjectModelTableType.true...column caption='movies_and_genres.csv' datatype='table' name='[__tableau_internal_object_id__].[movies_and_genres.csv_9352F778916F462EA004E23C809F086E]' role='measure' type='quantitative' />
       <_.fcp.ObjectModelTableType.true...column caption='ratings.csv' datatype='table' name='[__tableau_internal_object_id__].[ratings.csv_24C4E6CD85274633AF76D7345337A1AD]' role='measure' type='quantitative' />
       <_.fcp.ObjectModelTableType.true...column caption='tags.csv' datatype='table' name='[__tableau_internal_object_id__].[tags.csv_FFDAAE9A8D64483BB1C401E1E498E51E]' role='measure' type='quantitative' />
+      <column datatype='string' name='[genres]' role='dimension' type='nominal' />
+      <column-instance column='[genres]' derivation='None' name='[none:genres:nk]' pivot='key' type='nominal' />
       <layout _.fcp.SchemaViewerObjectModel.false...dim-percentage='0.5' _.fcp.SchemaViewerObjectModel.false...measure-percentage='0.4' dim-ordering='alphabetic' measure-ordering='alphabetic' show-structure='true' />
+      <style>
+        <style-rule element='mark'>
+          <encoding attr='color' field='[none:genres:nk]' type='palette'>
+            <map to='#499894'>
+              <bucket>&quot;Horror&quot;</bucket>
+            </map>
+            <map to='#4e79a7'>
+              <bucket>&quot;Drama&quot;</bucket>
+            </map>
+            <map to='#59a14f'>
+              <bucket>&quot;Romance&quot;</bucket>
+            </map>
+            <map to='#79706e'>
+              <bucket>&quot;Children&quot;</bucket>
+            </map>
+            <map to='#86bcb6'>
+              <bucket>&quot;Fantasy&quot;</bucket>
+            </map>
+            <map to='#8cd17d'>
+              <bucket>&quot;Adventure&quot;</bucket>
+            </map>
+            <map to='#9d7660'>
+              <bucket>&quot;Film-Noir&quot;</bucket>
+            </map>
+            <map to='#a0cbe8'>
+              <bucket>&quot;Comedy&quot;</bucket>
+            </map>
+            <map to='#b07aa1'>
+              <bucket>&quot;Musical&quot;</bucket>
+            </map>
+            <map to='#b6992d'>
+              <bucket>&quot;Crime&quot;</bucket>
+            </map>
+            <map to='#bab0ac'>
+              <bucket>&quot;Mystery&quot;</bucket>
+            </map>
+            <map to='#d37295'>
+              <bucket>&quot;IMAX&quot;</bucket>
+            </map>
+            <map to='#d4a6c8'>
+              <bucket>&quot;Western&quot;</bucket>
+            </map>
+            <map to='#e15759'>
+              <bucket>&quot;Animation&quot;</bucket>
+            </map>
+            <map to='#f1ce63'>
+              <bucket>&quot;Sci-Fi&quot;</bucket>
+            </map>
+            <map to='#f28e2b'>
+              <bucket>&quot;Thriller&quot;</bucket>
+            </map>
+            <map to='#fabfd2'>
+              <bucket>&quot;War&quot;</bucket>
+            </map>
+            <map to='#ff9d9a'>
+              <bucket>&quot;Documentary&quot;</bucket>
+            </map>
+            <map to='#ffbe7d'>
+              <bucket>&quot;Action&quot;</bucket>
+            </map>
+          </encoding>
+        </style-rule>
+      </style>
       <semantic-values>
         <semantic-value key='[Country].[Name]' value='&quot;Brazil&quot;' />
       </semantic-values>
@@ -378,13 +444,19 @@
       </_.fcp.ObjectModelEncapsulateLegacy.true...object-graph>
     </datasource>
   </datasources>
+  <mapsources>
+    <mapsource name='Tableau' />
+  </mapsources>
   <worksheets>
-    <worksheet name='Genêros Lançados de 2001 a 2018'>
+    <worksheet name='Gêneros Lançados de 2001 a 2018'>
       <table>
         <view>
           <datasources>
             <datasource caption='movies_and_genres+' name='federated.1yi62sj1ekyn5210bn6ux08ocar6' />
           </datasources>
+          <mapsources>
+            <mapsource name='Tableau' />
+          </mapsources>
           <datasource-dependencies datasource='federated.1yi62sj1ekyn5210bn6ux08ocar6'>
             <column caption='year' datatype='integer' datatype-customized='true' name='[Calculation_1766818451290497028]' role='dimension' type='ordinal'>
               <calculation class='tableau' formula='INT(mid([name], len([name])-4 , 4))' />
@@ -417,15 +489,53 @@
               <groupfilter function='member' level='[none:Calculation_1766818451290497028:ok]' member='2018' />
             </groupfilter>
           </filter>
+          <filter class='categorical' column='[federated.1yi62sj1ekyn5210bn6ux08ocar6].[none:genres:nk]'>
+            <groupfilter from='&quot;Action&quot;' function='range' level='[none:genres:nk]' to='&quot;Western&quot;' user:ui-domain='relevant' user:ui-enumeration='inclusive' user:ui-marker='enumerate' />
+          </filter>
           <computed-sort column='[federated.1yi62sj1ekyn5210bn6ux08ocar6].[none:genres:nk]' direction='DESC' using='[federated.1yi62sj1ekyn5210bn6ux08ocar6].[cnt:genres:qk]' />
           <slices>
             <column>[federated.1yi62sj1ekyn5210bn6ux08ocar6].[none:Calculation_1766818451290497028:ok]</column>
+            <column>[federated.1yi62sj1ekyn5210bn6ux08ocar6].[none:genres:nk]</column>
           </slices>
           <aggregation value='true' />
         </view>
         <style>
           <style-rule element='mark'>
             <encoding attr='size-bar' field='[federated.1yi62sj1ekyn5210bn6ux08ocar6].[cnt:genres:qk]' field-type='quantitative' max-size='1' min-size='0.005' type='centersize' />
+          </style-rule>
+          <style-rule element='map-layer'>
+            <format attr='enabled' id='b01002_001e' value='false' />
+            <format attr='enabled' id='b01002_002e' value='false' />
+            <format attr='enabled' id='b01002_003e' value='false' />
+            <format attr='enabled' id='dp02_0001e' value='false' />
+            <format attr='enabled' id='dp02_0015e' value='false' />
+            <format attr='enabled' id='dp03_0027e_plus_dp03_0029e' value='false' />
+            <format attr='enabled' id='dp03_0028e' value='false' />
+            <format attr='enabled' id='dp03_0030e_plus_dp03_0031e' value='false' />
+            <format attr='enabled' id='dp03_0062e' value='false' />
+            <format attr='enabled' id='dp03_0088e' value='false' />
+            <format attr='enabled' id='dp04_0001e' value='false' />
+            <format attr='enabled' id='dp04_0046e' value='false' />
+            <format attr='enabled' id='dp04_0047e' value='false' />
+            <format attr='enabled' id='dp04_0089e' value='false' />
+            <format attr='enabled' id='dp05_0001e' value='false' />
+            <format attr='enabled' id='dp05_0002e_div_dp05_0003e' value='false' />
+            <format attr='enabled' id='dp05_0032e' value='false' />
+            <format attr='enabled' id='dp05_0033e' value='false' />
+            <format attr='enabled' id='dp05_0034e' value='false' />
+            <format attr='enabled' id='dp05_0039e' value='false' />
+            <format attr='enabled' id='dp05_0047e' value='false' />
+            <format attr='enabled' id='dp05_0053e' value='false' />
+            <format attr='enabled' id='dp05_0066e' value='false' />
+            <format attr='enabled' id='dp05_0077e' value='false' />
+          </style-rule>
+          <style-rule element='map'>
+            <format attr='washout' value='0' />
+            <format attr='map-style' value='light' />
+          </style-rule>
+          <style-rule element='map-data-layer'>
+            <format attr='palette' value='tableau-map-blue-green-light' />
+            <format attr='geo-area-type' value='State' />
           </style-rule>
         </style>
         <panes>
@@ -456,8 +566,131 @@
         </panes>
         <rows />
         <cols />
+        <percentages enabled='false' mode='cell-in-pane' />
       </table>
       <simple-id uuid='{6B24003A-0F4D-469E-B16C-BD981C231D50}' />
+    </worksheet>
+    <worksheet name='Gêneros Lançados de 2001 a 2018 (2)'>
+      <table>
+        <view>
+          <datasources>
+            <datasource caption='movies_and_genres+' name='federated.1yi62sj1ekyn5210bn6ux08ocar6' />
+          </datasources>
+          <mapsources>
+            <mapsource name='Tableau' />
+          </mapsources>
+          <datasource-dependencies datasource='federated.1yi62sj1ekyn5210bn6ux08ocar6'>
+            <column caption='year' datatype='integer' datatype-customized='true' name='[Calculation_1766818451290497028]' role='dimension' type='ordinal'>
+              <calculation class='tableau' formula='INT(mid([name], len([name])-4 , 4))' />
+            </column>
+            <column-instance column='[genres]' derivation='Count' name='[cnt:genres:qk]' pivot='key' type='quantitative' />
+            <column datatype='string' name='[genres]' role='dimension' type='nominal' />
+            <column datatype='string' name='[name]' role='dimension' type='nominal' />
+            <column-instance column='[Calculation_1766818451290497028]' derivation='None' name='[none:Calculation_1766818451290497028:ok]' pivot='key' type='ordinal' />
+            <column-instance column='[genres]' derivation='None' name='[none:genres:nk]' pivot='key' type='nominal' />
+          </datasource-dependencies>
+          <filter class='categorical' column='[federated.1yi62sj1ekyn5210bn6ux08ocar6].[none:Calculation_1766818451290497028:ok]'>
+            <groupfilter function='union' user:ui-domain='relevant' user:ui-enumeration='inclusive' user:ui-marker='enumerate'>
+              <groupfilter function='member' level='[none:Calculation_1766818451290497028:ok]' member='2001' />
+              <groupfilter function='member' level='[none:Calculation_1766818451290497028:ok]' member='2002' />
+              <groupfilter function='member' level='[none:Calculation_1766818451290497028:ok]' member='2003' />
+              <groupfilter function='member' level='[none:Calculation_1766818451290497028:ok]' member='2004' />
+              <groupfilter function='member' level='[none:Calculation_1766818451290497028:ok]' member='2005' />
+              <groupfilter function='member' level='[none:Calculation_1766818451290497028:ok]' member='2006' />
+              <groupfilter function='member' level='[none:Calculation_1766818451290497028:ok]' member='2007' />
+              <groupfilter function='member' level='[none:Calculation_1766818451290497028:ok]' member='2008' />
+              <groupfilter function='member' level='[none:Calculation_1766818451290497028:ok]' member='2009' />
+              <groupfilter function='member' level='[none:Calculation_1766818451290497028:ok]' member='2010' />
+              <groupfilter function='member' level='[none:Calculation_1766818451290497028:ok]' member='2011' />
+              <groupfilter function='member' level='[none:Calculation_1766818451290497028:ok]' member='2012' />
+              <groupfilter function='member' level='[none:Calculation_1766818451290497028:ok]' member='2013' />
+              <groupfilter function='member' level='[none:Calculation_1766818451290497028:ok]' member='2014' />
+              <groupfilter function='member' level='[none:Calculation_1766818451290497028:ok]' member='2015' />
+              <groupfilter function='member' level='[none:Calculation_1766818451290497028:ok]' member='2016' />
+              <groupfilter function='member' level='[none:Calculation_1766818451290497028:ok]' member='2017' />
+              <groupfilter function='member' level='[none:Calculation_1766818451290497028:ok]' member='2018' />
+            </groupfilter>
+          </filter>
+          <filter class='categorical' column='[federated.1yi62sj1ekyn5210bn6ux08ocar6].[none:genres:nk]'>
+            <groupfilter from='&quot;Action&quot;' function='range' level='[none:genres:nk]' to='&quot;Western&quot;' user:ui-domain='relevant' user:ui-enumeration='inclusive' user:ui-marker='enumerate' />
+          </filter>
+          <computed-sort column='[federated.1yi62sj1ekyn5210bn6ux08ocar6].[none:genres:nk]' direction='DESC' using='[federated.1yi62sj1ekyn5210bn6ux08ocar6].[cnt:genres:qk]' />
+          <slices>
+            <column>[federated.1yi62sj1ekyn5210bn6ux08ocar6].[none:Calculation_1766818451290497028:ok]</column>
+            <column>[federated.1yi62sj1ekyn5210bn6ux08ocar6].[none:genres:nk]</column>
+          </slices>
+          <aggregation value='true' />
+        </view>
+        <style>
+          <style-rule element='mark'>
+            <encoding attr='size-bar' field='[federated.1yi62sj1ekyn5210bn6ux08ocar6].[cnt:genres:qk]' field-type='quantitative' max-size='1' min-size='0.005' type='centersize' />
+          </style-rule>
+          <style-rule element='map-layer'>
+            <format attr='enabled' id='b01002_001e' value='false' />
+            <format attr='enabled' id='b01002_002e' value='false' />
+            <format attr='enabled' id='b01002_003e' value='false' />
+            <format attr='enabled' id='dp02_0001e' value='false' />
+            <format attr='enabled' id='dp02_0015e' value='false' />
+            <format attr='enabled' id='dp03_0027e_plus_dp03_0029e' value='false' />
+            <format attr='enabled' id='dp03_0028e' value='false' />
+            <format attr='enabled' id='dp03_0030e_plus_dp03_0031e' value='false' />
+            <format attr='enabled' id='dp03_0062e' value='false' />
+            <format attr='enabled' id='dp03_0088e' value='false' />
+            <format attr='enabled' id='dp04_0001e' value='false' />
+            <format attr='enabled' id='dp04_0046e' value='false' />
+            <format attr='enabled' id='dp04_0047e' value='false' />
+            <format attr='enabled' id='dp04_0089e' value='false' />
+            <format attr='enabled' id='dp05_0001e' value='false' />
+            <format attr='enabled' id='dp05_0002e_div_dp05_0003e' value='false' />
+            <format attr='enabled' id='dp05_0032e' value='false' />
+            <format attr='enabled' id='dp05_0033e' value='false' />
+            <format attr='enabled' id='dp05_0034e' value='false' />
+            <format attr='enabled' id='dp05_0039e' value='false' />
+            <format attr='enabled' id='dp05_0047e' value='false' />
+            <format attr='enabled' id='dp05_0053e' value='false' />
+            <format attr='enabled' id='dp05_0066e' value='false' />
+            <format attr='enabled' id='dp05_0077e' value='false' />
+          </style-rule>
+          <style-rule element='map'>
+            <format attr='washout' value='0' />
+            <format attr='map-style' value='light' />
+          </style-rule>
+          <style-rule element='map-data-layer'>
+            <format attr='palette' value='tableau-map-blue-green-light' />
+            <format attr='geo-area-type' value='State' />
+          </style-rule>
+        </style>
+        <panes>
+          <pane selection-relaxation-option='selection-relaxation-allow'>
+            <view>
+              <breakdown value='on' />
+            </view>
+            <mark class='Automatic' />
+            <encodings>
+              <size column='[federated.1yi62sj1ekyn5210bn6ux08ocar6].[cnt:genres:qk]' />
+              <color column='[federated.1yi62sj1ekyn5210bn6ux08ocar6].[cnt:genres:qk]' />
+              <text column='[federated.1yi62sj1ekyn5210bn6ux08ocar6].[none:genres:nk]' />
+            </encodings>
+            <style>
+              <style-rule element='mark'>
+                <format attr='mark-labels-show' value='true' />
+                <format attr='mark-labels-cull' value='true' />
+                <format attr='mark-labels-line-first' value='true' />
+                <format attr='mark-labels-line-last' value='true' />
+                <format attr='mark-labels-range-min' value='true' />
+                <format attr='mark-labels-range-max' value='true' />
+                <format attr='mark-labels-mode' value='all' />
+                <format attr='mark-labels-range-scope' value='pane' />
+                <format attr='mark-labels-range-field' value='' />
+              </style-rule>
+            </style>
+          </pane>
+        </panes>
+        <rows />
+        <cols />
+        <percentages enabled='false' mode='cell-in-pane' />
+      </table>
+      <simple-id uuid='{4BD9FC4A-1796-4A3C-9369-19C30D1B763E}' />
     </worksheet>
     <worksheet name='Planilha 2'>
       <table>
@@ -584,8 +817,8 @@
       <simple-id uuid='{0AE99D6D-53CD-440A-97AF-8BDF58E7C704}' />
     </worksheet>
   </worksheets>
-  <windows source-height='37'>
-    <window class='worksheet' maximized='true' name='Genêros Lançados de 2001 a 2018'>
+  <windows source-height='30'>
+    <window class='worksheet' name='Gêneros Lançados de 2001 a 2018'>
       <cards>
         <edge name='left'>
           <strip size='160'>
@@ -608,6 +841,7 @@
         <edge name='right'>
           <strip size='300'>
             <card param='[federated.1yi62sj1ekyn5210bn6ux08ocar6].[none:Calculation_1766818451290497028:ok]' type='filter' />
+            <card AVG='true' KURTOSIS='false' MAX='true' MEDIAN='true' MIN='true' QUART1='false' QUART3='false' SKEWNESS='false' STDEV='false' SUM='true' type='summary' />
             <card pane-specification-id='0' param='[federated.1yi62sj1ekyn5210bn6ux08ocar6].[cnt:genres:qk]' type='color' />
           </strip>
         </edge>
@@ -615,15 +849,56 @@
       <viewpoint>
         <highlight>
           <color-one-way>
+            <field>[federated.1yi62sj1ekyn5210bn6ux08ocar6].[cnt:genres:qk]</field>
             <field>[federated.1yi62sj1ekyn5210bn6ux08ocar6].[none:Calculation_1766818451286593538:qk]</field>
             <field>[federated.1yi62sj1ekyn5210bn6ux08ocar6].[none:Calculation_1766818451290497028:ok]</field>
-            <field>[federated.1yi62sj1ekyn5210bn6ux08ocar6].[none:genres:nk]</field>
             <field>[federated.1yi62sj1ekyn5210bn6ux08ocar6].[none:name:nk]</field>
             <field>[federated.1yi62sj1ekyn5210bn6ux08ocar6].[none:timestamp:qk]</field>
           </color-one-way>
         </highlight>
       </viewpoint>
       <simple-id uuid='{F687BC26-D960-4124-A17D-82C677AB2E4D}' />
+    </window>
+    <window class='worksheet' maximized='true' name='Gêneros Lançados de 2001 a 2018 (2)'>
+      <cards>
+        <edge name='left'>
+          <strip size='160'>
+            <card type='pages' />
+            <card type='filters' />
+            <card type='marks' />
+          </strip>
+        </edge>
+        <edge name='top'>
+          <strip size='2147483647'>
+            <card type='columns' />
+          </strip>
+          <strip size='2147483647'>
+            <card type='rows' />
+          </strip>
+          <strip size='2147483647'>
+            <card type='title' />
+          </strip>
+        </edge>
+        <edge name='right'>
+          <strip size='300'>
+            <card param='[federated.1yi62sj1ekyn5210bn6ux08ocar6].[none:Calculation_1766818451290497028:ok]' type='filter' />
+            <card AVG='true' KURTOSIS='false' MAX='true' MEDIAN='true' MIN='true' QUART1='false' QUART3='false' SKEWNESS='false' STDEV='false' SUM='true' type='summary' />
+            <card pane-specification-id='0' param='[federated.1yi62sj1ekyn5210bn6ux08ocar6].[cnt:genres:qk]' type='color' />
+          </strip>
+        </edge>
+      </cards>
+      <viewpoint>
+        <highlight>
+          <color-one-way>
+            <field>[federated.1yi62sj1ekyn5210bn6ux08ocar6].[cnt:genres:qk]</field>
+            <field>[federated.1yi62sj1ekyn5210bn6ux08ocar6].[none:Calculation_1766818451286593538:qk]</field>
+            <field>[federated.1yi62sj1ekyn5210bn6ux08ocar6].[none:Calculation_1766818451290497028:ok]</field>
+            <field>[federated.1yi62sj1ekyn5210bn6ux08ocar6].[none:name:nk]</field>
+            <field>[federated.1yi62sj1ekyn5210bn6ux08ocar6].[none:timestamp:qk]</field>
+          </color-one-way>
+        </highlight>
+      </viewpoint>
+      <simple-id uuid='{D798F7BE-BE9B-46AD-BCEB-9F3473E40C62}' />
     </window>
     <window class='worksheet' name='Planilha 2'>
       <cards>
@@ -740,42 +1015,94 @@
     </window>
   </windows>
   <thumbnails>
-    <thumbnail height='192' name='Genêros Lançados de 2001 a 2018' width='192'>
+    <thumbnail height='192' name='Gêneros Lançados de 2001 a 2018' width='192'>
       iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAYAAABS3GwHAAAACXBIWXMAAA7DAAAOwwHHb6hk
-      AAAG40lEQVR4nO3dS28b5xmG4Wc4M6YOlETJphTZsi0ZdpraaNAGaIsWaAt32U3RTfrX8iu6
-      y7KLHhZNm6RO0zrwKW50Mi2JEs/kkBxOF3KR0lbgOkhEU899AVrMBwp4IfIWv6E0ZJBlWSbA
-      VG7cAwDjRACwFv3vwXu/+7P++fnuuGbBKygVC5r97hXVkv64R5kYN0sLaqe9kbWRAD59tKs/
-      /v3hqQ6Fr+fyyqKKxVntt5NxjzIxopxUH4z+vNgCwVp00uKPbl5VFOV05/6O4ihU/lykVjvR
-      7HRevf5AcRyq2uioP0hPe148JwwC/fLaqjarTQ2GmbbqLeXDUDNxqKvFgu7uVxXncuo8u6+6
-      3GfKskz3//B73fj57ZMDqNRaiqNQ339zTZVaUz++ta7P/v1UcZhTO+lrrbSg8mFDH362edqz
-      4zlplumLalN7ra7WiwX9YPW8tmpNLU7ldS7M6XvLi5rLx9pvdXV3vzrucV8LrcqBmpUDbd35
-      +OQAgkBK+gN9+nBHkvSPBzv6onykQZoqCAL1BwPtHTZPdWh8tXKzo04/1f1KTdNRpKNuonY/
-      1UG7q1461EphWtv1lpJ0OO5RXwthHOud37yrxv7TkwN4uH0wcnznwc7I8b8+L3970+GV1Z+9
-      EtQfSu3+8Ran2v3y1Y6jbu/E73M1vVCUJM2vrHISDG8EAGsEAGsEAGsEAGsEAGsEAGsEAGsE
-      AGsEAGsEAGsEAGsEAGsEAGsEAGsEAGsEAGsEAGsEAGsEAGsEAGsEAGsEAGsEAGsEAGsEAGsE
-      AGsEAGsEAGsEAGsEAGsEAGsEAGsEAGsEAGsEAGsEAGsEAGsEAGsEAGsEAGsEAGsEAGsEAGsE
-      AGsEAGsEAGsEAGsEAGsEAGsEAGsEAGsEAGsEAGsEAGsEAGsEAGsEAGsEAGsEAGsEAGsEAGsE
-      AGsEAGvRuAfA13dzuahqtzfuMSbGcmFa9WoyskYAE+xepaaDdvLyG0KSND8Vv7DGFgjWCOAM
-      6DXqSnvHzwRZlh1/DYdjnmoysAU6A9rlbYVT0xp0O+pW9jV3eV1pt6t+q6Gp8yX16lUtvvW2
-      giAY96hjNROHKs3Oj6wRwIQbpqk6B08VRLGCMFR+cUlZlqm9/0S5KFZyVFF+8byUZZJ5AIPh
-      UNXe6IsGBDDhcmGo1Z/cfmF9bm399IeZQJwDwE6/lygbDpW02zwDwE/t6VM1jw41SBKeAeAn
-      CAKVrqyr02jwDAA/ixcvKQgC3frFbQKAn1zueOMThCFbIHgjAFgjAFgjAFgjAFgjAFgjAFgj
-      AFgjAFgjAFgjAFgjAFgjAFgjAFgjAFgjAFgbuSDmreuX1MvRxCQoFWe1Ne4hzoCRAB7sVvTh
-      g51xzYJXcLm0oIWla+MeY+Lx6x7WTrwm+Nb6ivqDVLuVupLeQDNT547fbSzpKx9HGmaZ1i4s
-      6NGTigJJ6TA75bGBb8ZXXhS/uVfVOzcuKQpzygWBhsNM0/lY+TjSk8O60mGmH765psflI+1V
-      m6c5M/CNOTGASq2ly6Wi6u1ElVpL7aQvSZqbzmt+Nq80zdTp9bXxxiIPfky0EwMoHzVVPnrx
-      gV1rdaWDL48396rf2mDAaeAkGNYIANYIANYIANYIANYIANYIANYIANYIANYIANYIANYIANb4
-      jDDYmI4ivTE/M7JGALCRpANtN3oja2yBYI0AYOeo/ET3//qB+nxSPBwN+n0Fkh59/BHnAPAz
-      u1DU0upFHWxtEgD8zMzPS5JWNq6xBYI3AoA1AoA1AoA1AoA1AoA1AoA1AoA1AoA1AoA1AoA1
-      AoA1AoA1AoA1AoA1rgeYYD+9XFL92ee34eWuLMxop9UYWSOACbbbbKna7b38hpAkLc3EL6yx
-      BYI1AjgDNj/6QHsP7o17jInEFugM6DYbCuNzevyXPymMz6l1WFEuDFW4UFL53l1d2LiuXBip
-      12kpS1N163Xd+tWvFQTBuEcfOwI4Ay7eeluDXk/BYU75wpyWrl6TlKlTr2n5+ne0dHVDyqTq
-      7raifF5zK6vjHvm1QQBnQOHCsiSpeHHtxPX/mj1/4dRmmhScA8AaAcAaAcAaAcAaAcAaAcAa
-      AcAaAcAafwiDlef/+YMAYGMqCrU4UxhZIwDYSNJU1VYyssY5AKwRAOxkWaa/vf++et0uAcDP
-      UbmsTrOhx598wjkA/EwVZvWzd3+r2t4eAcDPzNzxp0QWV1bYAsEbAcAaAcAaAcAaAcAaAcAa
-      AcAaAcAaAcAaAcAaAcAaAcAaAcAaAcAaAcAaAcAaAcAaAcAaAcAaAcAaAcAaAcAaAcAaAcAa
-      AcDayDvD3bh0Xp2kP65Z8AqWi7PaKM6p2eP++n+tFmaUDOORtf8AsbrSko2mFagAAAAASUVO
-      RK5CYII=
+      AAAGe0lEQVR4nO3d205c5x2G8XfNzJrxGDAbQ4ID2CSpLSeOHZI2zVHVg1xCj3pnvYpeRFUl
+      VWOlpM6mLY5ru2ZjbGC2a2bWtgeRXI+MVZENy8P7/CQO1ieB/oJ5mO8btJigKIpCgKlK2QMA
+      ZSIAWKs9f/GHP/5ZX93bKWsWnNDGb27qQX9Y9hgT4635aeVBNrY2FsCd73b0p7/dPdWh8MOF
+      V1f0Vbtf9hgTY5hmyivp2BpbIFirHbf463evqFaraPNf2wprVTXqNfWjkaaaDcVJqjCsqtUd
+      KEmz4z4dp2xjeUFhpaJunOh+q6d6taJaJdBCs6GikNqjWO1hrHq1qn6S/v8vaOD+53/R8vV3
+      jw/goN1XWKtq49qqDto9fXxjXd/ef6ywWlE0SrS6NKu9w65uf/vwtOfGMR60eqpXq7o03dTb
+      CzOqBYFGWa5C0sVmQ7eW57XdiXT3sKN+Uva05SvyXN0n+8rz7PgAgkAaJanu3N2WJP19a1sP
+      9o6UZpmCIFCSpto/7J3q0Hi5fpJqmGbqxYmqlUBxlqtR/X53u98bqDs6r+1upMNBXPKkr4Y8
+      S3Xtt58oi0fHB3D30dOx682t7bHrr+/t/XzT4cTiLH9hbfjc9vRoyAP/edWwrmpYl6amOATD
+      GwHAGgHAGgHAGgHAGgHAGgHAGgHAGgHAGgHAGgHAGgHAGgHAGgHAGgHAGgHAGgHAGgHAGgHA
+      GgHAGgHAGgHAGgHAGgHAGgHAGgHAGgHAGgHAGgHAGgHAGgHAGgHAGgHAGgHAGgHAGgHAGgHA
+      GgHAGgHAGgHAGgHAGgHAGgHAGgHAGgHAGgHAGgHAGgHAGgHAGgHAGgHAGgHAGgHAGgHAGgHA
+      GgHAGgHAGgHAGgHAGgHAGgHAGgHAGgHAGgHAWq3sAfDDXZmdVrVZL3uMifH2/Iy22kdjawQw
+      wR51+/q60y97jIlRqwQvrLEFgjUCOAPyNFHcaUmSiqL4/iPPS55qMrAFOgOi/T3FnZbq3Y5G
+      7SNlo4Gai68r7nbUmJ3X4MmeFt65pWrjXNmjvnII4AyIHu8ojfrKk1iNuQWN0kRJ1FPcbSkd
+      9DWzuq50ENkHEASBbi7Nja0RwBnw2gcfj13PrL1Z0iSvtqIotNsff9GAMwCs8QwAS0d7u0rj
+      mADg6cGXmwobDQKAp7d++ZGyJCEAeLqwuCiJQzDMEQCsEQCsEQCsEQCsEQCsEQCsEQCsEQCs
+      EQCsEQCsEQCsEQCsEQCsEQCsEQCsjd0Qc/0XK4orNDEp6nXuZ/qxxr6DWzsHur21XdYsOKFP
+      rq+UPcLE49c9rB37HHpj/XUlaaadg45Gcarz5+oqikLRKFEjrCkvCq0uzuq73QMFkrK8OOWx
+      gZ/GSzeRD/db+vDqimrViipBoDwv1GyEaoQ17R52lOWFPrq2qn/vHWm/1TvNmYGfzLEBHLT7
+      WluaUyca6aDdVzRKJEkzzYYuTDWUZYUGcaI3l+d58GOiHRvA3lFPe0cvPrDb/aH09H/XD/db
+      P9tgwGngEAxrBABrBABrBABrBABrBABrBABrBABrBABrBABrBABrBABr3FMHG0EQaH12ZmyN
+      AGCjKArt9HineOAZAoClf3z2qaJ2mwDgKWq31Hn6hADgaf39DVVrIYdgeFq49IYkzgAwRwCw
+      RgCwRgCwRgCwRgCwRgCwRgCwRgCwRgCwRgCwRgCwRgCwRgCwRgCwxv0AE+ydxVktzU2VPcbE
+      uDw7pZ2oM7ZGABPscDjUo8Gw7DEmRjN8ccPDFgjWCOAMePzPb/SfzdsqCt6w/KTYAp0B8SBS
+      EkXa/vILpfFIWZIoS2JNLy7p/l8/1er7v1IaDxWea0qSdr+5ow9+9/tn184I4AxYuLyudDRS
+      HEUKs1TTi0uSpFG/pzfe29CF5UsKm+c1aB0qz3NdunFLlSo/eokAzoSphcWXri+srT93ffGU
+      JpocnAFgjQBgjQBgjQBgjQBgjQBgjQBgjQBgjQBgjb8Ew0agQOuz02NrBAAjhXb6vEsk8AwB
+      wNK9zU3FgwFbIPgpikKHuzvK84wA4CeNY11576aKPCcA+AkbDS2trUniDABzBABrBABrBABr
+      BABrBABrBABrBABrBABrBABrBABrBABrBABrBABrBABrBABrBABrBABrBABrBABrBABrBABr
+      BABrBABrBABrY/8Z7urKRQ1GSVmz4IQuz82o0ayXPcbEWLkwJVWysbX/AjSRwcfqc7i6AAAA
+      AElFTkSuQmCC
+    </thumbnail>
+    <thumbnail height='192' name='Gêneros Lançados de 2001 a 2018 (2)' width='192'>
+      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
+      5Vv3onJHUQAAAABJRU5ErkJggg==
     </thumbnail>
     <thumbnail height='192' name='Planilha 2' width='192'>
       iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAYAAABS3GwHAAAACXBIWXMAAA7DAAAOwwHHb6hk
